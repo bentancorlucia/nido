@@ -50,14 +50,7 @@ export function ProjectNode({
       <motion.div
         initial={{ opacity: 0, x: -8 }}
         animate={{ opacity: 1, x: 0 }}
-        className={`
-          group flex items-center gap-2 py-2 px-2.5 rounded-xl cursor-pointer
-          transition-all duration-150 relative
-          ${isSelected
-            ? 'bg-primary-light/50 text-primary'
-            : 'text-text-primary hover:bg-surface-alt/40'
-          }
-        `}
+        className={`pnode-row ${isSelected ? 'pnode-row--selected' : 'pnode-row--default'}`}
         style={{ paddingLeft: `${depth * 18 + 10}px` }}
         onClick={() => onSelect(project.id)}
       >
@@ -67,21 +60,21 @@ export function ProjectNode({
             e.stopPropagation()
             setExpanded(!expanded)
           }}
-          className="w-4 h-4 flex items-center justify-center flex-shrink-0"
+          className="pnode-expand-btn"
         >
           {hasChildren ? (
             <motion.div animate={{ rotate: expanded ? 0 : -90 }} transition={{ duration: 0.15 }}>
-              <ChevronDown size={12} className="text-text-muted" />
+              <ChevronDown size={12} className="pnode-expand-icon" />
             </motion.div>
           ) : (
-            <span className="w-1 h-1 rounded-full bg-text-muted/30" />
+            <span className="pnode-no-children-dot" />
           )}
         </button>
 
         {/* Icon */}
-        <span className="flex-shrink-0">
+        <span className="pnode-icon">
           {project.icon ? (
-            <span className="text-sm">{project.icon}</span>
+            <span className="pnode-icon-emoji">{project.icon}</span>
           ) : expanded && hasChildren ? (
             <FolderOpen size={15} style={{ color: project.color ?? undefined }} />
           ) : (
@@ -90,26 +83,26 @@ export function ProjectNode({
         </span>
 
         {/* Name */}
-        <span className="text-[13px] font-medium truncate flex-1">{project.name}</span>
+        <span className="pnode-name">{project.name}</span>
 
         {/* Color dot */}
         {project.color && (
           <span
-            className="w-2 h-2 rounded-full flex-shrink-0 opacity-60"
+            className="pnode-color-dot"
             style={{ backgroundColor: project.color }}
           />
         )}
 
         {/* Actions menu */}
-        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+        <div className="pnode-menu-trigger">
           <button
             onClick={(e) => {
               e.stopPropagation()
               setShowMenu(!showMenu)
             }}
-            className="p-0.5 rounded hover:bg-surface-alt/80 transition-colors"
+            className="pnode-menu-btn"
           >
-            <MoreHorizontal size={14} className="text-text-muted" />
+            <MoreHorizontal size={14} className="pnode-menu-btn-icon" />
           </button>
         </div>
       </motion.div>
@@ -118,13 +111,13 @@ export function ProjectNode({
       <AnimatePresence>
         {showMenu && (
           <>
-            <div className="fixed inset-0 z-40" onClick={() => setShowMenu(false)} />
+            <div className="pnode-overlay" onClick={() => setShowMenu(false)} />
             <motion.div
               initial={{ opacity: 0, y: -4, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -4, scale: 0.95 }}
               transition={{ duration: 0.12 }}
-              className="relative z-50 ml-8 glass-strong rounded-xl shadow-lg p-1.5 min-w-[180px]"
+              className="pnode-dropdown glass-strong"
               style={{ marginLeft: `${depth * 18 + 28}px` }}
             >
               {[
@@ -141,14 +134,7 @@ export function ProjectNode({
                     item.action()
                     setShowMenu(false)
                   }}
-                  className={`
-                    w-full flex items-center gap-2.5 px-3 py-2 text-[12.5px] font-medium rounded-lg
-                    transition-colors duration-120
-                    ${item.danger
-                      ? 'text-danger hover:bg-danger-light/50'
-                      : 'text-text-primary hover:bg-surface-alt/50'
-                    }
-                  `}
+                  className={`pnode-dropdown-item ${item.danger ? 'pnode-dropdown-item--danger' : ''}`}
                 >
                   {item.icon}
                   {item.label}
@@ -167,7 +153,7 @@ export function ProjectNode({
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
-            className="overflow-hidden"
+            className="pnode-children"
           >
             {children
               .sort((a, b) => a.sort_order - b.sort_order)

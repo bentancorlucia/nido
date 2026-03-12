@@ -16,6 +16,7 @@ import { useCalendarStore } from '../../stores/useCalendarStore'
 import { staggerContainer, staggerItem } from '../../lib/animations'
 
 const WEEKDAYS_SHORT = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
+const FIXED_WEEKS = 6
 
 interface YearViewProps {
   onClickMonth: (date: Date) => void
@@ -24,6 +25,7 @@ interface YearViewProps {
 export function YearView({ onClickMonth }: YearViewProps) {
   const { currentDate, setCurrentDate, getEventsForDate } = useCalendarStore()
   const year = currentDate.getFullYear()
+  const currentMonthIndex = currentDate.getMonth()
 
   const months = useMemo(
     () => Array.from({ length: 12 }, (_, i) => new Date(year, i, 1)),
@@ -35,19 +37,18 @@ export function YearView({ onClickMonth }: YearViewProps) {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="year-root">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4">
-        <h2 className="text-2xl font-display font-bold text-text-primary tracking-tight">
+      <div className="year-header">
+        <h2 className="year-title">
           {year}
         </h2>
-        <div className="flex items-center gap-1">
+        <div className="year-nav">
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={() => navigateYear(-1)}
-            className="p-2 rounded-xl text-text-secondary hover:text-text-primary
-                       hover:bg-surface-alt/60 transition-colors"
+            className="cal-nav-btn"
           >
             <ChevronLeft size={18} />
           </motion.button>
@@ -55,25 +56,25 @@ export function YearView({ onClickMonth }: YearViewProps) {
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={() => navigateYear(1)}
-            className="p-2 rounded-xl text-text-secondary hover:text-text-primary
-                       hover:bg-surface-alt/60 transition-colors"
+            className="cal-nav-btn"
           >
             <ChevronRight size={18} />
           </motion.button>
         </div>
       </div>
 
-      {/* 4×3 grid of mini calendars */}
+      {/* 4x3 grid of mini calendars */}
       <motion.div
         variants={staggerContainer}
         initial="hidden"
         animate="visible"
-        className="flex-1 grid grid-cols-4 gap-4 px-6 pb-6 overflow-y-auto"
+        className="year-grid"
       >
         {months.map((monthDate) => (
           <motion.div key={monthDate.getMonth()} variants={staggerItem}>
             <MiniMonth
               monthDate={monthDate}
+              isCurrent={monthDate.getMonth() === currentMonthIndex}
               getEventsForDate={getEventsForDate}
               onClick={() => onClickMonth(monthDate)}
             />
@@ -86,10 +87,12 @@ export function YearView({ onClickMonth }: YearViewProps) {
 
 function MiniMonth({
   monthDate,
+  isCurrent,
   getEventsForDate,
   onClick,
 }: {
   monthDate: Date
+  isCurrent: boolean
   getEventsForDate: (dateStr: string) => unknown[]
   onClick: () => void
 }) {
@@ -106,6 +109,17 @@ function MiniMonth({
       }
       rows.push(week)
     }
+    // Pad to FIXED_WEEKS rows for uniform height
+    while (rows.length < FIXED_WEEKS) {
+      const lastDay = rows[rows.length - 1][6]
+      const week: Date[] = []
+      let d = addDays(lastDay, 1)
+      for (let i = 0; i < 7; i++) {
+        week.push(d)
+        d = addDays(d, 1)
+      }
+      rows.push(week)
+    }
     return rows
   }, [monthDate])
 
@@ -113,16 +127,16 @@ function MiniMonth({
     <motion.button
       whileHover={{ scale: 1.02, y: -2 }}
       onClick={onClick}
-      className="glass rounded-xl p-3 cursor-pointer text-left hover:shadow-md transition-shadow w-full"
+      className={`glass year-mini-month ${isCurrent ? 'year-mini-month-current' : ''}`}
     >
-      <h3 className="text-[13px] font-display font-semibold text-text-primary mb-2 capitalize">
+      <h3 className={`year-mini-month-title ${isCurrent ? 'year-mini-month-title-current' : ''}`}>
         {format(monthDate, 'MMMM', { locale: es })}
       </h3>
 
       {/* Weekday headers */}
-      <div className="grid grid-cols-7 mb-1">
+      <div className="year-mini-weekdays">
         {WEEKDAYS_SHORT.map((d) => (
-          <span key={d} className="text-center text-[9px] text-text-muted font-medium">
+          <span key={d} className="year-mini-weekday">
             {d}
           </span>
         ))}
@@ -130,7 +144,7 @@ function MiniMonth({
 
       {/* Days */}
       {weeks.map((week, wi) => (
-        <div key={wi} className="grid grid-cols-7">
+        <div key={wi} className="year-mini-week">
           {week.map((day) => {
             const inMonth = isSameMonth(day, monthDate)
             const today = isToday(day)
@@ -140,21 +154,21 @@ function MiniMonth({
             // Heatmap intensity
             let heatClass = ''
             if (eventCount > 0 && inMonth) {
-              if (eventCount >= 4) heatClass = 'bg-primary/40'
-              else if (eventCount >= 2) heatClass = 'bg-primary/25'
-              else heatClass = 'bg-primary/12'
+              if (eventCount >= 4) heatClass = 'year-mini-day-heat-3'
+              else if (eventCount >= 2) heatClass = 'year-mini-day-heat-2'
+              else heatClass = 'year-mini-day-heat-1'
             }
 
             return (
               <div
                 key={day.toISOString()}
-                className={`
-                  flex items-center justify-center w-full aspect-square
-                  text-[10px] rounded-sm
-                  ${!inMonth ? 'opacity-0' : ''}
-                  ${today ? 'bg-primary text-text-on-primary font-bold rounded-full' : heatClass}
-                  ${!today && inMonth ? 'text-text-secondary' : ''}
-                `}
+                className={`year-mini-day ${
+                  !inMonth
+                    ? 'year-mini-day-hidden'
+                    : today
+                      ? 'year-mini-day-today'
+                      : `year-mini-day-normal ${heatClass}`
+                }`}
               >
                 {inMonth ? day.getDate() : ''}
               </div>

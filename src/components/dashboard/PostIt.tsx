@@ -19,7 +19,7 @@ export function PostIt({ postIt, onDragStart, onDragEnd, linkedTaskTitle }: Post
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   // Random subtle rotation for natural look
-  const [rotation] = useState(() => (Math.random() - 0.5) * 4) // ±2°
+  const [rotation] = useState(() => (Math.random() - 0.5) * 4) // +/-2deg
 
   useEffect(() => {
     if (isEditing && textareaRef.current) {
@@ -45,7 +45,6 @@ export function PostIt({ postIt, onDragStart, onDragEnd, linkedTaskTitle }: Post
   }
 
   // Determine if text should be dark or light based on bg color
-  const isDarkBg = postIt.color === '#E8A0BC' || postIt.color === '#A0D4B8'
   const textColor = '#304B42'
 
   return (
@@ -75,7 +74,7 @@ export function PostIt({ postIt, onDragStart, onDragEnd, linkedTaskTitle }: Post
         const newY = postIt.position_y + info.offset.y
         onDragEnd?.(newX, newY)
       }}
-      className="absolute cursor-grab active:cursor-grabbing group"
+      className="postit-wrap"
       style={{
         left: postIt.position_x,
         top: postIt.position_y,
@@ -84,7 +83,7 @@ export function PostIt({ postIt, onDragStart, onDragEnd, linkedTaskTitle }: Post
       }}
     >
       <div
-        className="rounded-lg shadow-md hover:shadow-lg transition-shadow relative overflow-hidden"
+        className="postit-inner"
         style={{
           backgroundColor: postIt.color,
           minHeight: postIt.height,
@@ -92,7 +91,7 @@ export function PostIt({ postIt, onDragStart, onDragEnd, linkedTaskTitle }: Post
       >
         {/* Folded corner effect */}
         <div
-          className="absolute top-0 right-0 w-6 h-6"
+          className="postit-corner"
           style={{
             background: `linear-gradient(135deg, transparent 50%, rgba(0,0,0,0.06) 50%)`,
           }}
@@ -100,23 +99,23 @@ export function PostIt({ postIt, onDragStart, onDragEnd, linkedTaskTitle }: Post
 
         {/* Pin indicator */}
         {postIt.is_pinned === 1 && (
-          <div className="absolute top-1 left-1/2 -translate-x-1/2 -translate-y-0.5">
-            <div className="w-3 h-3 rounded-full bg-danger shadow-sm" />
+          <div className="postit-pin">
+            <div className="postit-pin-dot" />
           </div>
         )}
 
         {/* Actions - visible on hover */}
-        <div className="absolute top-1.5 right-7 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+        <div className="postit-actions">
           <button
             onClick={(e) => { e.stopPropagation(); togglePin(postIt.id) }}
-            className="p-1 rounded hover:bg-black/10 transition-colors"
+            className="postit-action-btn"
             title={postIt.is_pinned ? 'Desfijar' : 'Fijar'}
           >
-            <Pin size={11} style={{ color: textColor }} className={postIt.is_pinned === 1 ? 'fill-current' : ''} />
+            <Pin size={11} style={{ color: textColor }} className={postIt.is_pinned === 1 ? 'postit-fill-current' : ''} />
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); handleDelete() }}
-            className="p-1 rounded hover:bg-black/10 transition-colors"
+            className="postit-action-btn"
             title={showDelete ? 'Confirmar eliminar' : 'Eliminar'}
           >
             <Trash2 size={11} style={{ color: showDelete ? '#7E1946' : textColor }} />
@@ -124,14 +123,14 @@ export function PostIt({ postIt, onDragStart, onDragEnd, linkedTaskTitle }: Post
         </div>
 
         {/* Content */}
-        <div className="p-3 pt-4" onClick={() => setIsEditing(true)}>
+        <div className="postit-content-area" onClick={() => setIsEditing(true)}>
           {isEditing ? (
             <textarea
               ref={textareaRef}
               value={content}
               onChange={(e) => setContent(e.target.value)}
               onBlur={handleBlur}
-              className="w-full bg-transparent outline-none resize-none text-[13px] leading-relaxed"
+              className="postit-textarea-full"
               style={{ color: textColor, minHeight: (postIt.height ?? 140) - 50 }}
               onKeyDown={(e) => {
                 if (e.key === 'Escape') handleBlur()
@@ -139,7 +138,7 @@ export function PostIt({ postIt, onDragStart, onDragEnd, linkedTaskTitle }: Post
             />
           ) : (
             <p
-              className="text-[13px] leading-relaxed whitespace-pre-wrap break-words min-h-[60px]"
+              className="postit-display-text"
               style={{ color: content ? textColor : `${textColor}88` }}
             >
               {content || 'Click para escribir...'}
@@ -150,11 +149,11 @@ export function PostIt({ postIt, onDragStart, onDragEnd, linkedTaskTitle }: Post
         {/* Linked task indicator */}
         {linkedTaskTitle && (
           <div
-            className="px-3 pb-2 flex items-center gap-1 opacity-60"
+            className="postit-linked-task"
             style={{ color: textColor }}
           >
             <Link2 size={10} />
-            <span className="text-[10px] truncate">{linkedTaskTitle}</span>
+            <span className="postit-linked-task-text">{linkedTaskTitle}</span>
           </div>
         )}
       </div>

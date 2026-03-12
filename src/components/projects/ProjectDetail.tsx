@@ -67,54 +67,61 @@ export function ProjectDetail({ projectId, onNavigateKanban }: ProjectDetailProp
 
   if (!project) return null
 
+  const statItems = [
+    { label: 'Total', value: stats.total, colorClass: 'pdetail-stat-value--primary' },
+    { label: 'Completadas', value: stats.completed, colorClass: 'pdetail-stat-value--accent' },
+    { label: 'En proceso', value: stats.inProgress, colorClass: 'pdetail-stat-value--info' },
+    { label: 'Vencidas', value: stats.overdue, colorClass: 'pdetail-stat-value--danger' },
+  ]
+
   return (
-    <div className="flex flex-col h-full overflow-y-auto">
+    <div className="pdetail-root">
       {/* Header */}
       <div style={{ padding: '24px 28px 16px' }}>
-        <div className="flex items-start gap-3.5">
+        <div className="pdetail-header">
           {/* Color + icon */}
           <div
-            className="w-10 h-10 rounded-xl flex items-center justify-center text-white text-base font-bold flex-shrink-0 shadow-sm"
+            className="pdetail-avatar"
             style={{ backgroundColor: project.color ?? '#01A7C2' }}
           >
             {project.icon || project.name.charAt(0)}
           </div>
 
-          <div className="flex-1 min-w-0">
+          <div className="pdetail-info">
             {editing ? (
-              <div className="flex flex-col gap-2">
+              <div className="pdetail-edit-form">
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="text-xl font-display font-bold bg-transparent border-b border-primary outline-none text-text-primary pb-1"
+                  className="pdetail-edit-name"
                   autoFocus
                 />
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Descripción del proyecto..."
-                  className="text-[13px] text-text-secondary bg-transparent border-b border-border outline-none resize-none pb-1"
+                  className="pdetail-edit-desc"
                   rows={2}
                 />
-                <button onClick={handleSave} className="self-start p-1 rounded-md bg-primary text-white">
+                <button onClick={handleSave} className="pdetail-edit-save">
                   <Check size={14} />
                 </button>
               </div>
             ) : (
               <>
-                <div className="flex items-center gap-2">
-                  <h2 className="text-xl font-display font-bold text-text-primary truncate">
+                <div className="pdetail-name-row">
+                  <h2 className="pdetail-name">
                     {project.name}
                   </h2>
                   <button
                     onClick={() => setEditing(true)}
-                    className="p-1 rounded-md text-text-muted hover:text-primary hover:bg-primary-light/40 transition-colors"
+                    className="pdetail-edit-btn"
                   >
                     <Pencil size={13} />
                   </button>
                 </div>
                 {project.description && (
-                  <p className="text-[13px] text-text-secondary mt-1">{project.description}</p>
+                  <p className="pdetail-description">{project.description}</p>
                 )}
               </>
             )}
@@ -123,35 +130,30 @@ export function ProjectDetail({ projectId, onNavigateKanban }: ProjectDetailProp
       </div>
 
       {/* Progress */}
-      <div className="px-8 pb-5">
+      <div className="pdetail-progress">
         <ProjectProgress projectId={projectId} size="lg" />
       </div>
 
       {/* Stats */}
-      <div className="px-8 pb-6 grid grid-cols-4 gap-3">
-        {[
-          { label: 'Total', value: stats.total, color: 'text-text-primary' },
-          { label: 'Completadas', value: stats.completed, color: 'text-accent-dark' },
-          { label: 'En proceso', value: stats.inProgress, color: 'text-primary' },
-          { label: 'Vencidas', value: stats.overdue, color: 'text-danger' },
-        ].map((s) => (
+      <div className="pdetail-stats">
+        {statItems.map((s) => (
           <motion.div
             key={s.label}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            className="glass rounded-xl p-4 text-center"
+            className="glass pdetail-stat-card"
           >
-            <div className={`text-lg font-bold font-mono tabular-nums ${s.color}`}>{s.value}</div>
-            <div className="section-label mt-1">{s.label}</div>
+            <div className={`pdetail-stat-value ${s.colorClass}`}>{s.value}</div>
+            <div className="section-label pdetail-stat-label">{s.label}</div>
           </motion.div>
         ))}
       </div>
 
       {/* Actions */}
-      <div className="px-8 pb-5">
+      <div className="pdetail-actions">
         <button
           onClick={onNavigateKanban}
-          className="w-full py-3 rounded-xl bg-primary-light/35 text-primary text-[13px] font-semibold hover:bg-primary-light/55 transition-colors"
+          className="pdetail-kanban-btn"
         >
           Ver tablero Kanban →
         </button>
@@ -159,23 +161,23 @@ export function ProjectDetail({ projectId, onNavigateKanban }: ProjectDetailProp
 
       {/* Subprojects */}
       {children.length > 0 && (
-        <div className="px-8 pb-8">
-          <h4 className="section-label mb-3">
+        <div className="pdetail-subprojects">
+          <h4 className="section-label pdetail-subprojects-title">
             Subproyectos ({children.length})
           </h4>
-          <div className="grid gap-2.5">
+          <div className="pdetail-subprojects-grid">
             {children.map((child) => (
               <motion.button
                 key={child.id}
                 whileHover={{ y: -1 }}
-                className="flex items-center gap-3 glass rounded-xl text-left hover:shadow-sm transition-all"
+                className="glass pdetail-subproject-btn"
                 style={{ padding: '12px 16px' }}
               >
                 <span
-                  className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                  className="pdetail-subproject-dot"
                   style={{ backgroundColor: child.color ?? '#01A7C2' }}
                 />
-                <span className="text-[13px] font-medium text-text-primary truncate">{child.name}</span>
+                <span className="pdetail-subproject-name">{child.name}</span>
               </motion.button>
             ))}
           </div>

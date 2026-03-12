@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Plus, Archive as ArchiveIcon } from 'lucide-react'
+import { Plus, Archive as ArchiveIcon, BookTemplate } from 'lucide-react'
 import { ProjectNode } from './ProjectNode'
 import { useProjectStore } from '../../stores/useProjectStore'
+import { TemplateSelector } from './TemplateSelector'
 import { Modal } from '../ui/Modal'
 import { Input } from '../ui/Input'
 import { Button } from '../ui/Button'
@@ -32,6 +33,7 @@ export function ProjectTree({ onSelect, selectedId }: ProjectTreeProps) {
 
   const [deleteId, setDeleteId] = useState<string | null>(null)
   const [showArchived, setShowArchived] = useState(false)
+  const [showTemplates, setShowTemplates] = useState(false)
 
   const activeProjects = projects.filter((p) => p.is_archived === 0)
   const rootProjects = activeProjects.filter((p) => p.parent_id === null)
@@ -82,21 +84,28 @@ export function ProjectTree({ onSelect, selectedId }: ProjectTreeProps) {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="ptree-root">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-border" style={{ height: 48, padding: '0 20px' }}>
-        <h3 className="text-[13px] font-display font-semibold text-text-primary">Proyectos</h3>
-        <div className="flex gap-1">
+      <div className="ptree-header" style={{ height: 48, padding: '0 20px' }}>
+        <h3 className="ptree-title">Proyectos</h3>
+        <div className="ptree-actions">
+          <button
+            onClick={() => setShowTemplates(true)}
+            className="ptree-action-btn"
+            title="Crear desde template"
+          >
+            <BookTemplate size={14} />
+          </button>
           <button
             onClick={() => setShowArchived(!showArchived)}
-            className={`p-1.5 rounded-lg transition-colors ${showArchived ? 'bg-primary-light/50 text-primary' : 'text-text-muted hover:text-text-primary hover:bg-surface-alt/50'}`}
+            className={`ptree-action-btn ${showArchived ? 'ptree-action-btn--active' : ''}`}
             title="Ver archivados"
           >
             <ArchiveIcon size={14} />
           </button>
           <button
             onClick={() => { setCreateParentId(null); setShowCreate(true) }}
-            className="p-1.5 rounded-lg text-text-muted hover:text-primary hover:bg-primary-light/30 transition-colors"
+            className="ptree-action-btn"
             title="Nuevo proyecto"
           >
             <Plus size={14} />
@@ -105,9 +114,9 @@ export function ProjectTree({ onSelect, selectedId }: ProjectTreeProps) {
       </div>
 
       {/* Tree */}
-      <div className="flex-1 overflow-y-auto py-2.5 px-2">
+      <div className="ptree-list">
         {rootProjects.length === 0 && !showArchived && (
-          <p className="text-center text-text-muted text-xs italic py-8">
+          <p className="ptree-empty">
             Sin proyectos aún
           </p>
         )}
@@ -136,21 +145,21 @@ export function ProjectTree({ onSelect, selectedId }: ProjectTreeProps) {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="mt-4 pt-3 border-t border-border overflow-hidden"
+              className="ptree-archived"
             >
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-text-muted px-3 mb-2">
+              <p className="ptree-archived-label">
                 Archivados
               </p>
               {archivedProjects.map((p) => (
                 <div
                   key={p.id}
-                  className="flex items-center gap-2 px-3 py-1.5 text-[12.5px] text-text-muted opacity-60"
+                  className="ptree-archived-item"
                 >
-                  <span className="w-2 h-2 rounded-full" style={{ backgroundColor: p.color ?? '#94A09A' }} />
-                  <span className="truncate">{p.name}</span>
+                  <span className="ptree-archived-dot" style={{ backgroundColor: p.color ?? '#94A09A' }} />
+                  <span className="ptree-archived-name">{p.name}</span>
                   <button
                     onClick={() => updateProject(p.id, { is_archived: 0 } as Partial<import('../../types').Project>)}
-                    className="ml-auto text-[10px] text-primary hover:underline"
+                    className="ptree-restore-btn"
                   >
                     Restaurar
                   </button>
@@ -163,34 +172,58 @@ export function ProjectTree({ onSelect, selectedId }: ProjectTreeProps) {
 
       {/* Create modal */}
       <Modal isOpen={showCreate} onClose={() => setShowCreate(false)} title="Nuevo proyecto" size="sm">
-        <div className="flex flex-col gap-4">
+        <div className="ptree-modal-form">
+          {/* Color preview banner */}
+          <div className="ptree-create-preview" style={{ background: `linear-gradient(135deg, ${newColor}, ${newColor}88)` }}>
+            <div className="ptree-create-preview-icon">
+              {newName.trim() ? newName.trim().charAt(0).toUpperCase() : '?'}
+            </div>
+            <span className="ptree-create-preview-name">
+              {newName.trim() || 'Mi proyecto'}
+            </span>
+          </div>
+
           <Input
             label="Nombre"
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
-            placeholder="Nombre del proyecto"
+            placeholder="¿Cómo se llama tu proyecto?"
             autoFocus
             onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
           />
           {createParentId && (
-            <p className="text-xs text-text-muted">
-              Subproyecto de: <span className="font-medium text-text-secondary">{projects.find((p) => p.id === createParentId)?.name}</span>
+            <p className="ptree-subproject-hint">
+              Subproyecto de: <span className="ptree-subproject-hint-name">{projects.find((p) => p.id === createParentId)?.name}</span>
             </p>
           )}
           <div>
-            <label className="text-[13px] font-display font-medium text-text-secondary mb-2 block">Color</label>
-            <div className="flex gap-2 flex-wrap">
+            <label className="ptree-color-label">Color</label>
+            <div className="ptree-color-grid">
               {PROJECT_COLORS.map((c) => (
-                <button
+                <motion.button
                   key={c}
                   onClick={() => setNewColor(c)}
-                  className={`w-7 h-7 rounded-full transition-all ${newColor === c ? 'ring-2 ring-primary ring-offset-2 ring-offset-surface-solid scale-110' : 'hover:scale-105'}`}
+                  whileHover={{ scale: 1.15 }}
+                  whileTap={{ scale: 0.95 }}
+                  className={`ptree-color-swatch ${newColor === c ? 'ptree-color-swatch--selected' : ''}`}
                   style={{ backgroundColor: c }}
-                />
+                >
+                  {newColor === c && (
+                    <motion.svg
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      width="14" height="14" viewBox="0 0 24 24"
+                      fill="none" stroke="white" strokeWidth="3"
+                      strokeLinecap="round" strokeLinejoin="round"
+                    >
+                      <polyline points="20 6 9 17 4 12" />
+                    </motion.svg>
+                  )}
+                </motion.button>
               ))}
             </div>
           </div>
-          <div className="flex justify-end gap-2 mt-2">
+          <div className="ptree-modal-actions">
             <Button variant="ghost" size="sm" onClick={() => setShowCreate(false)}>Cancelar</Button>
             <Button size="sm" onClick={handleCreate} disabled={!newName.trim()}>Crear proyecto</Button>
           </div>
@@ -199,14 +232,14 @@ export function ProjectTree({ onSelect, selectedId }: ProjectTreeProps) {
 
       {/* Rename modal */}
       <Modal isOpen={renameId !== null} onClose={() => setRenameId(null)} title="Renombrar proyecto" size="sm">
-        <div className="flex flex-col gap-4">
+        <div className="ptree-modal-form">
           <Input
             value={renameName}
             onChange={(e) => setRenameName(e.target.value)}
             autoFocus
             onKeyDown={(e) => e.key === 'Enter' && handleRename()}
           />
-          <div className="flex justify-end gap-2">
+          <div className="ptree-modal-actions--no-mt">
             <Button variant="ghost" size="sm" onClick={() => setRenameId(null)}>Cancelar</Button>
             <Button size="sm" onClick={handleRename}>Guardar</Button>
           </div>
@@ -215,18 +248,32 @@ export function ProjectTree({ onSelect, selectedId }: ProjectTreeProps) {
 
       {/* Color modal */}
       <Modal isOpen={colorId !== null} onClose={() => setColorId(null)} title="Cambiar color" size="sm">
-        <div className="flex flex-col gap-4">
-          <div className="flex gap-2 flex-wrap">
+        <div className="ptree-modal-form">
+          <div className="ptree-color-grid">
             {PROJECT_COLORS.map((c) => (
-              <button
+              <motion.button
                 key={c}
                 onClick={() => setColorValue(c)}
-                className={`w-8 h-8 rounded-full transition-all ${colorValue === c ? 'ring-2 ring-primary ring-offset-2 ring-offset-surface-solid scale-110' : 'hover:scale-105'}`}
+                whileHover={{ scale: 1.15 }}
+                whileTap={{ scale: 0.95 }}
+                className={`ptree-color-swatch-lg ${colorValue === c ? 'ptree-color-swatch-lg--selected' : ''}`}
                 style={{ backgroundColor: c }}
-              />
+              >
+                {colorValue === c && (
+                  <motion.svg
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    width="16" height="16" viewBox="0 0 24 24"
+                    fill="none" stroke="white" strokeWidth="3"
+                    strokeLinecap="round" strokeLinejoin="round"
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </motion.svg>
+                )}
+              </motion.button>
             ))}
           </div>
-          <div className="flex justify-end gap-2">
+          <div className="ptree-modal-actions--no-mt">
             <Button variant="ghost" size="sm" onClick={() => setColorId(null)}>Cancelar</Button>
             <Button size="sm" onClick={handleColorChange}>Aplicar</Button>
           </div>
@@ -235,16 +282,19 @@ export function ProjectTree({ onSelect, selectedId }: ProjectTreeProps) {
 
       {/* Delete confirmation */}
       <Modal isOpen={deleteId !== null} onClose={() => setDeleteId(null)} title="Eliminar proyecto" size="sm">
-        <div className="flex flex-col gap-4">
-          <p className="text-[13px] text-text-secondary">
+        <div className="ptree-modal-form">
+          <p className="ptree-delete-text">
             ¿Estás segura de que querés eliminar este proyecto? Se eliminarán todas las tareas y subproyectos asociados.
           </p>
-          <div className="flex justify-end gap-2">
+          <div className="ptree-modal-actions--no-mt">
             <Button variant="ghost" size="sm" onClick={() => setDeleteId(null)}>Cancelar</Button>
             <Button variant="danger" size="sm" onClick={handleDelete}>Eliminar</Button>
           </div>
         </div>
       </Modal>
+
+      {/* Template selector */}
+      <TemplateSelector open={showTemplates} onClose={() => setShowTemplates(false)} />
     </div>
   )
 }

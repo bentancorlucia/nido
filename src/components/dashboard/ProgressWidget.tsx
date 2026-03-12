@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { FolderTree } from 'lucide-react'
+import { FolderTree, CheckCircle2 } from 'lucide-react'
 import { dbQuery } from '../../lib/ipc'
 import { useUIStore } from '../../stores/useUIStore'
 
@@ -47,50 +47,86 @@ export function ProgressWidget() {
     setProjects(result)
   }
 
-  return (
-    <div className="h-full flex flex-col overflow-hidden">
-      {projects.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center text-center py-4">
-          <FolderTree size={28} className="text-text-muted/30 mb-2" />
-          <p className="text-xs text-text-muted">Sin proyectos activos</p>
+  const totalTasks = projects.reduce((acc, p) => acc + p.total, 0)
+  const totalDone = projects.reduce((acc, p) => acc + p.completed, 0)
+
+  if (projects.length === 0) {
+    return (
+      <div className="widget-empty">
+        <div className="widget-empty-icon">
+          <FolderTree size={22} />
         </div>
-      ) : (
-        <div className="flex-1 overflow-y-auto space-y-3 pr-1 -mr-1">
-          {projects.map((proj) => {
-            const pct = Math.round((proj.completed / proj.total) * 100)
-            return (
-              <button
-                key={proj.id}
-                onClick={() => setCurrentPage('projects')}
-                className="w-full text-left group"
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: proj.color }} />
-                    <span className="text-xs font-medium text-text-primary truncate group-hover:text-primary transition-colors">
-                      {proj.name}
-                    </span>
-                  </div>
-                  <span className="text-[10px] font-mono text-text-muted flex-shrink-0 ml-2">
-                    {proj.completed}/{proj.total}
+        <p className="progress-empty-title">Sin proyectos activos</p>
+        <p className="progress-empty-subtitle">Creá uno para ver progreso</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="progress-container">
+      {/* Summary header */}
+      <div className="progress-summary">
+        <div>
+          <span className="progress-summary-label">Resumen</span>
+        </div>
+        <div className="progress-summary-count">
+          <CheckCircle2 size={12} className="progress-summary-count-icon" />
+          <span className="progress-summary-count-text">{totalDone}/{totalTasks}</span>
+        </div>
+      </div>
+
+      {/* Projects list */}
+      <div className="widget-scroll progress-project-list">
+        {projects.map((proj, i) => {
+          const pct = Math.round((proj.completed / proj.total) * 100)
+
+          return (
+            <motion.button
+              key={proj.id}
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.06 }}
+              onClick={() => setCurrentPage('projects')}
+              className="progress-project-btn"
+            >
+              <div className="progress-project-header">
+                <div className="progress-project-info">
+                  <div
+                    className="progress-project-dot"
+                    style={{
+                      backgroundColor: proj.color,
+                      boxShadow: `0 0 8px ${proj.color}40`,
+                    }}
+                  />
+                  <span className="progress-project-name">
+                    {proj.name}
                   </span>
                 </div>
-                <div className="h-1.5 rounded-full bg-surface-alt overflow-hidden">
-                  <motion.div
-                    className="h-full rounded-full"
-                    style={{
-                      background: `linear-gradient(90deg, ${proj.color}, ${pct > 80 ? '#DDF45B' : proj.color}CC)`,
-                    }}
-                    initial={{ width: 0 }}
-                    animate={{ width: `${pct}%` }}
-                    transition={{ type: 'spring', stiffness: 100, damping: 20, delay: 0.1 }}
-                  />
-                </div>
-              </button>
-            )
-          })}
-        </div>
-      )}
+
+                <span className="progress-project-pct">
+                  {pct}%
+                </span>
+              </div>
+
+              <div className="progress-track">
+                <motion.div
+                  className="progress-fill"
+                  style={{ backgroundColor: proj.color }}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${pct}%` }}
+                  transition={{ type: 'spring', stiffness: 100, damping: 20, delay: i * 0.08 }}
+                />
+              </div>
+
+              <div className="progress-project-count-row">
+                <span className="progress-project-count">
+                  {proj.completed}/{proj.total}
+                </span>
+              </div>
+            </motion.button>
+          )
+        })}
+      </div>
     </div>
   )
 }

@@ -1,9 +1,12 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { format } from 'date-fns'
 import { es } from 'date-fns/locale'
 import {
-  CalendarCheck, Clock, ListChecks, Timer, Sparkles,
+  Sun, Moon, Sunrise, Sunset, CloudSun,
+  ListChecks, Clock, Timer, Sparkles,
+  CalendarCheck, Zap, Trophy,
+  CheckCircle2, Circle,
 } from 'lucide-react'
 import { FadeIn } from '../../lib/animations'
 import { useCalendarStore } from '../../stores/useCalendarStore'
@@ -14,16 +17,35 @@ import { TimelineHour } from './TimelineHour'
 import { TodayTask } from './TodayTask'
 import type { Task } from '../../types'
 
-const HOURS = Array.from({ length: 18 }, (_, i) => i + 6) // 6:00 - 23:00
+const HOURS = Array.from({ length: 18 }, (_, i) => i + 6) // 6:00–23:00
+
+function getGreeting(hour: number) {
+  if (hour < 6) return { text: 'Buenas noches', emoji: '🌙' }
+  if (hour < 12) return { text: 'Buenos días', emoji: '☀️' }
+  if (hour < 14) return { text: 'Buen mediodía', emoji: '🌤️' }
+  if (hour < 19) return { text: 'Buenas tardes', emoji: '🌅' }
+  return { text: 'Buenas noches', emoji: '🌙' }
+}
 
 const motivationalMessages = [
-  'Nada pendiente para hoy. Disfrutá el momento.',
-  'Tu día está libre. Aprovechalo como quieras.',
-  'Sin tareas por ahora. Un buen momento para planificar.',
+  '¡Día libre! Disfrutá el momento ✨',
+  'Nada pendiente. ¿Qué te gustaría hacer hoy?',
+  'Todo despejado. Un buen día para crear algo nuevo.',
+  '¡Sin tareas! Descansá o empezá algo divertido.',
 ]
 
+// Deterministic slight rotation per task for post-it feel
+function getPostItRotation(id: string): number {
+  let hash = 0
+  for (let i = 0; i < id.length; i++) {
+    hash = ((hash << 5) - hash) + id.charCodeAt(i)
+    hash |= 0
+  }
+  return (hash % 5) - 2 // -2 to 2 degrees
+}
+
 export function TodayView() {
-  const { events, loadEvents, getEventsForDate } = useCalendarStore()
+  const { loadEvents, getEventsForDate } = useCalendarStore()
   const { completeTask } = useTaskStore()
   const { sessionsToday, totalFocusToday } = usePomodoroStore()
 
@@ -40,18 +62,16 @@ export function TodayView() {
     usePomodoroStore.getState().loadStats()
   }, [])
 
-  // Real-time clock update
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 60_000)
     return () => clearInterval(timer)
   }, [])
 
-  // Scroll to current hour on mount
+  // Scroll timeline to current hour
   useEffect(() => {
     if (timelineRef.current) {
-      const currentHour = currentTime.getHours()
-      const hourIndex = Math.max(0, currentHour - 6)
-      const scrollTarget = hourIndex * 64 - 100
+      const hourIndex = Math.max(0, currentTime.getHours() - 6)
+      const scrollTarget = hourIndex * 28 - 40
       timelineRef.current.scrollTop = Math.max(0, scrollTarget)
     }
   }, [])
@@ -72,10 +92,18 @@ export function TodayView() {
     await loadTodayTasks()
   }
 
+  const currentHour = currentTime.getHours()
+  const currentMinute = currentTime.getMinutes()
+  const greeting = getGreeting(currentHour)
+
   const pendingTasks = todayTasks.filter((t) => t.is_completed === 0)
   const completedTasks = todayTasks.filter((t) => t.is_completed === 1)
   const overdueTasks = pendingTasks.filter((t) => t.due_date && t.due_date < todayStr)
   const todayOnlyTasks = pendingTasks.filter((t) => !t.due_date || t.due_date >= todayStr)
+
+  const totalTasks = todayTasks.length
+  const completedCount = completedTasks.length
+  const progress = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0
 
   const eventsHours = todayEvents.reduce((acc, e) => {
     const startH = parseInt(e.start_datetime.split('T')[1]?.split(':')[0] ?? '0')
@@ -83,181 +111,239 @@ export function TodayView() {
     return acc + Math.max(1, endH - startH)
   }, 0)
 
-  const hasContent = todayTasks.length > 0 || todayEvents.length > 0
-  const currentHour = currentTime.getHours()
-  const currentMinute = currentTime.getMinutes()
-
-  // "Now" indicator position relative to timeline
-  const nowOffsetPx = currentHour >= 6
-    ? (currentHour - 6) * 64 + (currentMinute / 60) * 64
-    : 0
-
-  // Stable motivational message per day
   const motivationalIndex = new Date().getDate() % motivationalMessages.length
+  const hasContent = todayTasks.length > 0 || todayEvents.length > 0
+
+  // Progress ring
+  const ringRadius = 54
+  const ringCircumference = 2 * Math.PI * ringRadius
+  const ringOffset = ringCircumference - (progress / 100) * ringCircumference
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
-      {/* Header */}
+    <div className="today-root">
+      {/* ─── Hero Section ─── */}
       <FadeIn>
-        <div style={{ padding: '24px 28px 18px' }}>
-          <div className="flex items-center gap-4 mb-2">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-primary/20 via-primary/10 to-accent/10 flex items-center justify-center shadow-sm">
-              <CalendarCheck size={18} className="text-primary" />
-            </div>
-            <div>
-              <h1 className="text-xl font-display font-bold text-text-primary capitalize tracking-tight leading-tight">
-                {format(currentTime, "EEEE d 'de' MMMM, yyyy", { locale: es })}
-              </h1>
-              <p className="text-xs text-text-muted font-mono tabular-nums mt-0.5">
-                {format(currentTime, 'HH:mm')}
-              </p>
-            </div>
-          </div>
-
-          {/* Summary pills */}
-          <div className="flex items-center gap-2.5 mt-4 flex-wrap">
-            <div className="pill-button bg-surface/60 border border-border text-text-secondary">
-              <ListChecks size={13} className="text-primary/70" />
-              <span className="text-[11.5px]">{pendingTasks.length} pendientes</span>
-            </div>
-            <div className="pill-button bg-surface/60 border border-border text-text-secondary">
-              <Clock size={13} className="text-primary/70" />
-              <span className="text-[11.5px]">{eventsHours}h de eventos</span>
-            </div>
-            <div className="pill-button bg-surface/60 border border-border text-text-secondary">
-              <Timer size={13} className="text-primary/70" />
-              <span className="text-[11.5px]">{sessionsToday} pomodoros</span>
-            </div>
-            {totalFocusToday > 0 && (
-              <div className="pill-button bg-primary-light/40 border border-primary/15 text-primary">
-                <Sparkles size={13} />
-                <span className="text-[11.5px] font-medium">{totalFocusToday} min enfocada</span>
+        <div className="today-hero">
+          <div className="today-hero-bg" />
+          <div className="today-hero-content">
+            <div className="today-hero-left">
+              <motion.div
+                className="today-greeting-emoji"
+                animate={{ rotate: [0, 10, -10, 0] }}
+                transition={{ duration: 2, repeat: Infinity, repeatDelay: 4 }}
+              >
+                {greeting.emoji}
+              </motion.div>
+              <div>
+                <h1 className="today-greeting">{greeting.text}</h1>
+                <p className="today-date">
+                  {format(currentTime, "EEEE d 'de' MMMM", { locale: es })}
+                </p>
               </div>
-            )}
+            </div>
+
+            {/* Stats inline */}
+            <div className="today-hero-stats">
+              <div className="today-hero-ring">
+                <svg className="today-progress-ring" viewBox="0 0 120 120">
+                  <circle cx="60" cy="60" r={ringRadius} className="today-ring-bg" />
+                  <motion.circle
+                    cx="60" cy="60" r={ringRadius}
+                    className="today-ring-fill"
+                    strokeDasharray={ringCircumference}
+                    initial={{ strokeDashoffset: ringCircumference }}
+                    animate={{ strokeDashoffset: ringOffset }}
+                    transition={{ duration: 1.2, ease: 'easeOut', delay: 0.3 }}
+                  />
+                </svg>
+                <div className="today-progress-center">
+                  <span className="today-progress-value">{progress}%</span>
+                </div>
+              </div>
+
+              <div className="today-hero-pills">
+                <div className="today-mini-pill">
+                  <ListChecks size={14} />
+                  <span><b>{pendingTasks.length}</b> pendientes</span>
+                </div>
+                <div className="today-mini-pill">
+                  <Clock size={14} />
+                  <span><b>{eventsHours}h</b> eventos</span>
+                </div>
+                <div className="today-mini-pill">
+                  <Timer size={14} />
+                  <span><b>{sessionsToday}</b> pomodoros</span>
+                </div>
+                {totalFocusToday > 0 && (
+                  <div className="today-mini-pill today-mini-pill-accent">
+                    <Zap size={14} />
+                    <span><b>{totalFocusToday}</b> min enfocada</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="today-hero-clock">
+              <span className="today-clock-hours">{format(currentTime, 'HH')}</span>
+              <motion.span
+                className="today-clock-sep"
+                animate={{ opacity: [1, 0.3, 1] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              >:</motion.span>
+              <span className="today-clock-minutes">{format(currentTime, 'mm')}</span>
+            </div>
           </div>
         </div>
       </FadeIn>
 
-      {/* Main content */}
-      <div className="flex-1 flex gap-4 overflow-hidden min-h-0" style={{ padding: '0 28px 24px' }}>
-        {/* Timeline */}
-        <FadeIn delay={0.05} className="flex-1 min-w-0">
-          <div className="glass rounded-2xl h-full flex flex-col overflow-hidden shadow-sm">
-            <div className="px-5 pt-4 pb-3 border-b border-border/40 flex items-center justify-between">
-              <h2 className="text-sm font-display font-semibold text-text-primary tracking-tight">Timeline</h2>
-              <span className="text-[10px] font-mono text-text-muted tabular-nums inline-flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary/60" />
+      {/* ─── Main: Timeline + Tasks ─── */}
+      <div className="today-columns">
+        {/* ─── Timeline (Left) ─── */}
+        <FadeIn delay={0.05} className="today-timeline-col">
+          <div className="today-timeline-panel glass">
+            <div className="today-timeline-header">
+              <h2 className="today-timeline-title">Cronograma</h2>
+              <span className="today-timeline-live">
+                <span className="today-timeline-live-dot" />
                 {format(currentTime, 'HH:mm')}
               </span>
             </div>
-            <div ref={timelineRef} className="flex-1 overflow-y-auto px-5 py-3.5 relative">
-              {/* "Now" line */}
-              {currentHour >= 6 && currentHour <= 23 && (
-                <div
-                  className="absolute left-14 right-5 z-10 pointer-events-none flex items-center"
-                  style={{ top: `${nowOffsetPx}px` }}
-                >
-                  <div className="w-2.5 h-2.5 rounded-full bg-danger shadow-md shadow-danger/25 -ml-1 ring-2 ring-danger/15" />
-                  <div className="flex-1 h-[1.5px] bg-gradient-to-r from-danger/80 via-danger/40 to-transparent" />
-                </div>
-              )}
-
-              {HOURS.map((hour) => (
-                <TimelineHour
-                  key={hour}
-                  hour={hour}
-                  events={todayEvents}
-                  isCurrentHour={hour === currentHour}
-                />
-              ))}
+            <div ref={timelineRef} className="today-timeline-scroll">
+              <div className="today-timeline-hours">
+                {HOURS.map((hour) => (
+                  <TimelineHour
+                    key={hour}
+                    hour={hour}
+                    events={todayEvents}
+                    isCurrentHour={hour === currentHour}
+                    currentMinute={currentMinute}
+                  />
+                ))}
+              </div>
             </div>
           </div>
         </FadeIn>
 
-        {/* Tasks panel */}
-        <FadeIn delay={0.1} className="w-[350px] flex-shrink-0">
-          <div className="glass rounded-2xl h-full flex flex-col overflow-hidden shadow-sm">
-            <div className="px-5 pt-4 pb-3 border-b border-border/40 flex items-center justify-between">
-              <h2 className="text-sm font-display font-semibold text-text-primary tracking-tight">
-                Tareas del día
-              </h2>
-              {todayTasks.length > 0 && (
-                <span className="text-[10px] font-medium text-text-muted bg-surface-alt/50 px-2 py-0.5 rounded-full">
-                  {completedTasks.length}/{todayTasks.length}
-                </span>
-              )}
-            </div>
-            <div className="flex-1 overflow-y-auto px-4 py-3.5 space-y-5">
-              {!hasContent && (
+        {/* ─── Tasks (Right) — Post-its ─── */}
+        <FadeIn delay={0.1} className="today-tasks-col">
+          <div className="today-tasks-scroll">
+            {/* Empty state */}
+            {!hasContent && (
+              <motion.div
+                className="today-empty-state"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+              >
                 <motion.div
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="flex flex-col items-center justify-center h-full text-center px-6"
+                  className="today-empty-icon"
+                  animate={{ y: [0, -8, 0] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
                 >
-                  <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-accent/20 to-accent/5 flex items-center justify-center mb-4 shadow-sm">
-                    <Sparkles size={22} className="text-accent-dark" />
-                  </div>
-                  <p className="text-[13px] text-text-secondary leading-relaxed max-w-[200px]">
-                    {motivationalMessages[motivationalIndex]}
-                  </p>
+                  <Sparkles size={32} />
                 </motion.div>
-              )}
+                <p className="today-empty-title">
+                  {motivationalMessages[motivationalIndex]}
+                </p>
+                <p className="today-empty-sub">
+                  Podés agregar tareas desde el Kanban o el calendario
+                </p>
+              </motion.div>
+            )}
 
-              {/* Overdue */}
-              {overdueTasks.length > 0 && (
-                <div>
-                  <p className="section-label text-danger mb-2.5 px-1">Vencidas ({overdueTasks.length})</p>
-                  <div className="space-y-2">
-                    <AnimatePresence mode="popLayout">
-                      {overdueTasks.map((task) => (
-                        <TodayTask
-                          key={task.id}
-                          task={task}
-                          onComplete={handleComplete}
-                        />
-                      ))}
-                    </AnimatePresence>
-                  </div>
+            {/* Overdue */}
+            {overdueTasks.length > 0 && (
+              <div className="today-postit-section">
+                <div className="today-section-header">
+                  <h2 className="today-section-title today-section-title-danger">
+                    <Circle size={8} className="today-dot-danger" />
+                    Vencidas
+                  </h2>
+                  <span className="today-section-count today-section-count-danger">
+                    {overdueTasks.length}
+                  </span>
                 </div>
-              )}
+                <div className="today-postit-board">
+                  <AnimatePresence mode="popLayout">
+                    {overdueTasks.map((task) => (
+                      <TodayTask
+                        key={task.id}
+                        task={task}
+                        onComplete={handleComplete}
+                        rotation={getPostItRotation(task.id)}
+                      />
+                    ))}
+                  </AnimatePresence>
+                </div>
+              </div>
+            )}
 
-              {/* Pending */}
-              {todayOnlyTasks.length > 0 && (
-                <div>
-                  <p className="section-label mb-2.5 px-1">Por hacer ({todayOnlyTasks.length})</p>
-                  <div className="space-y-2">
-                    <AnimatePresence mode="popLayout">
-                      {todayOnlyTasks.map((task) => (
-                        <TodayTask
-                          key={task.id}
-                          task={task}
-                          onComplete={handleComplete}
-                        />
-                      ))}
-                    </AnimatePresence>
-                  </div>
+            {/* Pending */}
+            {todayOnlyTasks.length > 0 && (
+              <div className="today-postit-section">
+                <div className="today-section-header">
+                  <h2 className="today-section-title">
+                    <CalendarCheck size={16} className="today-section-icon" />
+                    Por hacer
+                  </h2>
+                  <span className="today-section-count">{todayOnlyTasks.length}</span>
                 </div>
-              )}
+                <div className="today-postit-board">
+                  <AnimatePresence mode="popLayout">
+                    {todayOnlyTasks.map((task) => (
+                      <TodayTask
+                        key={task.id}
+                        task={task}
+                        onComplete={handleComplete}
+                        rotation={getPostItRotation(task.id)}
+                      />
+                    ))}
+                  </AnimatePresence>
+                </div>
+              </div>
+            )}
 
-              {/* Completed */}
-              {completedTasks.length > 0 && (
-                <div>
-                  <p className="section-label mb-2.5 px-1">Completadas ({completedTasks.length})</p>
-                  <div className="space-y-2">
-                    <AnimatePresence mode="popLayout">
-                      {completedTasks.map((task) => (
-                        <TodayTask
-                          key={task.id}
-                          task={task}
-                          onComplete={handleComplete}
-                        />
-                      ))}
-                    </AnimatePresence>
-                  </div>
+            {/* Completed */}
+            {completedTasks.length > 0 && (
+              <div className="today-postit-section">
+                <div className="today-section-header">
+                  <h2 className="today-section-title today-section-title-done">
+                    <CheckCircle2 size={16} className="today-section-icon-done" />
+                    Completadas
+                  </h2>
+                  <span className="today-section-count today-section-count-done">
+                    {completedCount}/{totalTasks}
+                  </span>
                 </div>
-              )}
-            </div>
+
+                {progress === 100 && (
+                  <motion.div
+                    className="today-celebration"
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 300 }}
+                  >
+                    <Trophy size={16} />
+                    <span>¡Completaste todo! Excelente día</span>
+                  </motion.div>
+                )}
+
+                <div className="today-postit-board">
+                  <AnimatePresence mode="popLayout">
+                    {completedTasks.map((task) => (
+                      <TodayTask
+                        key={task.id}
+                        task={task}
+                        onComplete={handleComplete}
+                        rotation={getPostItRotation(task.id)}
+                      />
+                    ))}
+                  </AnimatePresence>
+                </div>
+              </div>
+            )}
+
+            <div style={{ height: 8 }} />
           </div>
         </FadeIn>
       </div>

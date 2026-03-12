@@ -8,12 +8,12 @@ interface MainLayoutProps {
 
 export function MainLayout({ children }: MainLayoutProps) {
   return (
-    <div className="flex h-screen w-screen bg-bg overflow-hidden grain-overlay">
+    <div className="layout-root grain-overlay">
       <Sidebar />
-      <div className="flex flex-col flex-1 min-w-0 mesh-gradient">
+      <div className="layout-content mesh-gradient">
         <TopBar />
-        <main className="flex-1 overflow-y-auto relative z-10">
-          <div className="h-full">
+        <main className="layout-main">
+          <div className="layout-main-inner">
             {children}
           </div>
         </main>

@@ -47,31 +47,29 @@ export function MonthView({ onClickEvent, onClickDay }: MonthViewProps) {
   const monthLabel = format(currentDate, 'MMMM yyyy', { locale: es })
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="month-root">
       {/* Header */}
-      <div className="flex items-center justify-between" style={{ padding: '16px 28px' }}>
-        <div className="flex items-center gap-3">
-          <h2 className="text-xl font-display font-bold text-text-primary capitalize tracking-tight">
+      <div className="month-header" style={{ padding: '16px 28px' }}>
+        <div className="month-header-left">
+          <h2 className="month-title">
             {monthLabel}
           </h2>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={goToToday}
-            className="px-3 py-1.5 text-xs font-medium text-primary bg-primary-light/50 rounded-lg
-                       hover:bg-primary-light transition-colors"
+            className="month-today-btn"
           >
             Hoy
           </motion.button>
         </div>
 
-        <div className="flex items-center gap-1">
+        <div className="month-nav">
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={() => navigateMonth(-1)}
-            className="p-2 rounded-xl text-text-secondary hover:text-text-primary
-                       hover:bg-surface-alt/60 transition-colors"
+            className="cal-nav-btn"
           >
             <ChevronLeft size={18} />
           </motion.button>
@@ -79,8 +77,7 @@ export function MonthView({ onClickEvent, onClickDay }: MonthViewProps) {
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={() => navigateMonth(1)}
-            className="p-2 rounded-xl text-text-secondary hover:text-text-primary
-                       hover:bg-surface-alt/60 transition-colors"
+            className="cal-nav-btn"
           >
             <ChevronRight size={18} />
           </motion.button>
@@ -88,12 +85,9 @@ export function MonthView({ onClickEvent, onClickDay }: MonthViewProps) {
       </div>
 
       {/* Weekday headers */}
-      <div className="grid grid-cols-7 border-b border-border">
+      <div className="month-weekdays">
         {WEEKDAYS.map((day) => (
-          <div
-            key={day}
-            className="py-2.5 text-center text-[11px] font-semibold text-text-muted uppercase tracking-wider"
-          >
+          <div key={day} className="month-weekday">
             {day}
           </div>
         ))}
@@ -105,7 +99,7 @@ export function MonthView({ onClickEvent, onClickDay }: MonthViewProps) {
         variants={staggerContainer}
         initial="hidden"
         animate="visible"
-        className="grid grid-cols-7 flex-1"
+        className="month-grid"
       >
         {weeks.flat().map((date, idx) => {
           const dateStr = format(date, 'yyyy-MM-dd')

@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
-import { Play, Pause, RotateCcw, Timer } from 'lucide-react'
+import { Play, Pause, RotateCcw, Flame } from 'lucide-react'
 import { usePomodoroStore } from '../../stores/usePomodoroStore'
 
 export function PomodoroWidget() {
@@ -43,76 +43,90 @@ export function PomodoroWidget() {
   const progress = totalTime > 0 ? ((totalTime - timeRemaining) / totalTime) * 100 : 0
 
   const phaseLabel = phase === 'work' ? 'Enfoque' : phase === 'break' ? 'Descanso' : 'Descanso largo'
-  const phaseColor = phase === 'work' ? 'text-primary' : 'text-accent-dark'
-  const ringColor = phase === 'work' ? 'stroke-primary' : 'stroke-accent'
+  const isWork = phase === 'work'
+  const ringColor = isWork ? 'var(--color-primary)' : 'var(--color-accent-dark)'
 
-  // SVG ring params
-  const size = 80
-  const strokeWidth = 4
+  const size = 140
+  const strokeWidth = 7
   const radius = (size - strokeWidth) / 2
   const circumference = 2 * Math.PI * radius
 
   return (
-    <div className="h-full flex flex-col items-center justify-center gap-3">
+    <div className="pomodoro-container">
       {/* Timer ring */}
-      <div className="relative">
-        <svg width={size} height={size} className="-rotate-90">
+      <div className="pomodoro-ring-wrap">
+        <svg width={size} height={size} className="pomodoro-svg">
           <circle
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            fill="none"
-            className="stroke-surface-alt"
-            strokeWidth={strokeWidth}
+            className="pomodoro-ring-bg"
           />
           <motion.circle
             cx={size / 2}
             cy={size / 2}
             r={radius}
-            fill="none"
-            className={ringColor}
-            strokeWidth={strokeWidth}
-            strokeLinecap="round"
+            className="pomodoro-ring-progress"
+            style={{ stroke: ringColor }}
             strokeDasharray={circumference}
             animate={{ strokeDashoffset: circumference - (progress / 100) * circumference }}
             transition={{ duration: 0.5, ease: 'easeOut' }}
           />
         </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-lg font-mono font-bold text-text-primary leading-none">
-            {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+
+        <div className="pomodoro-time-overlay">
+          <span className="pomodoro-time-text">
+            {String(minutes).padStart(2, '0')}
+            <span className="pomodoro-time-separator">:</span>
+            {String(seconds).padStart(2, '0')}
           </span>
-          <span className={`text-[9px] font-medium mt-0.5 ${phaseColor}`}>{phaseLabel}</span>
+          <span
+            className="pomodoro-phase-label"
+            style={{ color: isWork ? 'var(--color-primary)' : 'var(--color-accent-dark)' }}
+          >
+            {phaseLabel}
+          </span>
         </div>
       </div>
 
       {/* Controls */}
-      <div className="flex items-center gap-2">
+      <div className="pomodoro-controls">
         <motion.button
-          whileHover={{ scale: 1.1 }}
+          whileHover={{ scale: 1.08 }}
           whileTap={{ scale: 0.9 }}
           onClick={reset}
-          className="w-7 h-7 rounded-full bg-surface-alt flex items-center justify-center hover:bg-border transition-colors"
+          className="pomodoro-reset-btn"
         >
-          <RotateCcw size={12} className="text-text-muted" />
+          <RotateCcw size={14} />
         </motion.button>
+
         <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.93 }}
+          whileHover={{ scale: 1.06 }}
+          whileTap={{ scale: 0.92 }}
           onClick={isRunning ? pause : start}
-          className="w-9 h-9 rounded-full bg-gradient-to-br from-primary to-primary-hover text-white flex items-center justify-center shadow-sm"
+          className="pomodoro-play-btn"
+          style={{
+            background: isWork
+              ? 'linear-gradient(135deg, var(--color-primary), var(--color-primary-hover))'
+              : 'linear-gradient(135deg, var(--color-accent-dark), var(--color-accent))',
+            boxShadow: isWork
+              ? '0 4px 14px rgba(1, 167, 194, 0.3)'
+              : '0 4px 14px rgba(184, 204, 58, 0.3)',
+          }}
         >
-          {isRunning ? <Pause size={16} /> : <Play size={16} className="ml-0.5" />}
+          {isRunning ? <Pause size={18} /> : <Play size={18} className="pomodoro-play-icon-offset" />}
         </motion.button>
       </div>
 
-      {/* Session info */}
-      <div className="flex items-center gap-3 text-[10px] text-text-muted">
-        <span className="flex items-center gap-1">
-          <Timer size={10} />
+      {/* Stats */}
+      <div className="pomodoro-stats">
+        <span className="pomodoro-stat-badge">
           Sesión {sessionNumber}/{sessionsPerCycle}
         </span>
-        <span>{sessionsToday} hoy</span>
+        <span className="pomodoro-stat-badge">
+          <Flame size={11} className="pomodoro-flame-icon" />
+          {sessionsToday} hoy
+        </span>
       </div>
     </div>
   )

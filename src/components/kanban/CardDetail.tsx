@@ -19,6 +19,12 @@ interface CardDetailProps {
   onClose: () => void
 }
 
+const priorityColors: Record<string, string> = {
+  alta: 'var(--color-priority-alta)',
+  media: 'var(--color-priority-media)',
+  baja: 'var(--color-priority-baja)',
+}
+
 export function CardDetail({ task: initialTask, onClose }: CardDetailProps) {
   const { updateTask, deleteTask, completeTask, addTagToTask, removeTagFromTask, taskTags } = useTaskStore()
   const { tags, loadTags } = useTagStore()
@@ -32,6 +38,13 @@ export function CardDetail({ task: initialTask, onClose }: CardDetailProps) {
   const [showTagPicker, setShowTagPicker] = useState(false)
   const [showColumnPicker, setShowColumnPicker] = useState(false)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [titleFocused, setTitleFocused] = useState(false)
+  const [descFocused, setDescFocused] = useState(false)
+  const [subtaskFocused, setSubtaskFocused] = useState(false)
+  const [hoverArchive, setHoverArchive] = useState(false)
+  const [hoverDelete, setHoverDelete] = useState(false)
+  const [hoverStar, setHoverStar] = useState(false)
+  const [hoverClose, setHoverClose] = useState(false)
 
   const currentTags = taskTags[task.id] ?? []
 
@@ -54,12 +67,14 @@ export function CardDetail({ task: initialTask, onClose }: CardDetailProps) {
   }
 
   const handleTitleBlur = () => {
+    setTitleFocused(false)
     if (title.trim() && title !== task.title) {
       save({ title: title.trim() })
     }
   }
 
   const handleDescBlur = () => {
+    setDescFocused(false)
     const desc = description.trim() || null
     if (desc !== task.description) {
       save({ description: desc })
@@ -94,9 +109,9 @@ export function CardDetail({ task: initialTask, onClose }: CardDetailProps) {
   const subtaskProgress = subtasks.length > 0 ? (completedSubtasks / subtasks.length) * 100 : 0
 
   const priorityOptions = [
-    { value: 'alta', label: 'Alta', color: 'bg-priority-alta' },
-    { value: 'media', label: 'Media', color: 'bg-priority-media' },
-    { value: 'baja', label: 'Baja', color: 'bg-priority-baja' },
+    { value: 'alta', label: 'Alta' },
+    { value: 'media', label: 'Media' },
+    { value: 'baja', label: 'Baja' },
   ]
 
   useEffect(() => {
@@ -105,202 +120,388 @@ export function CardDetail({ task: initialTask, onClose }: CardDetailProps) {
     return () => document.removeEventListener('keydown', handleEsc)
   }, [onClose])
 
+  // Shared styles
+  const sectionLabel: React.CSSProperties = {
+    fontSize: 10,
+    fontWeight: 700,
+    textTransform: 'uppercase',
+    letterSpacing: '0.08em',
+    color: 'var(--color-text-muted)',
+    margin: 0,
+    marginBottom: 10,
+    fontFamily: 'var(--font-display)',
+  }
+
+  const inputField: React.CSSProperties = {
+    padding: '8px 12px',
+    borderRadius: 10,
+    border: '1.5px solid var(--color-border)',
+    backgroundColor: 'rgba(0,0,0,0.015)',
+    transition: 'all 200ms cubic-bezier(0.4, 0, 0.2, 1)',
+    boxShadow: 'var(--shadow-inner)',
+  }
+
+  const inputFieldFocused: React.CSSProperties = {
+    ...inputField,
+    borderColor: 'var(--color-primary)',
+    backgroundColor: 'var(--color-surface-alt)',
+    boxShadow: 'var(--shadow-glow)',
+  }
+
+  const inputBase: React.CSSProperties = {
+    width: '100%',
+    backgroundColor: 'transparent',
+    outline: 'none',
+    border: 'none',
+    color: 'var(--color-text-primary)',
+    fontFamily: 'var(--font-sans)',
+  }
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div style={{
+      position: 'fixed',
+      inset: 0,
+      zIndex: 50,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    }}>
       <motion.div
         variants={overlayVariants}
         initial="hidden" animate="visible" exit="exit"
-        className="absolute inset-0 bg-black/30 backdrop-blur-md"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.25)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+        }}
         onClick={onClose}
       />
       <motion.div
         variants={modalVariants}
         initial="hidden" animate="visible" exit="exit"
-        className="relative w-full max-w-2xl mx-6 max-h-[85vh] glass-strong rounded-2xl shadow-lift overflow-hidden flex flex-col"
+        className="glass-strong"
+        style={{
+          position: 'relative',
+          width: '100%',
+          maxWidth: 640,
+          margin: '0 24px',
+          maxHeight: '85vh',
+          borderRadius: 22,
+          boxShadow: 'var(--shadow-lift)',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
         role="dialog"
         aria-modal="true"
       >
-        {/* Header */}
-        <div className="flex items-start gap-3" style={{ padding: '28px 28px 0' }}>
-          <Checkbox
-            checked={task.is_completed === 1}
-            onChange={(checked) => {
-              completeTask(task.id, checked)
-              setTask((prev) => ({ ...prev, is_completed: checked ? 1 : 0 }))
-            }}
-          />
-          <div className="flex-1 min-w-0">
-            <input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              onBlur={handleTitleBlur}
-              className="w-full text-lg font-display font-bold bg-transparent outline-none text-text-primary"
+        {/* ─── Header ─── */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: 14,
+          padding: '28px 28px 0',
+        }}>
+          <div style={{ marginTop: 4 }}>
+            <Checkbox
+              checked={task.is_completed === 1}
+              onChange={(checked) => {
+                completeTask(task.id, checked)
+                setTask((prev) => ({ ...prev, is_completed: checked ? 1 : 0 }))
+              }}
             />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={titleFocused ? inputFieldFocused : {
+              ...inputField,
+              border: '1.5px solid transparent',
+              backgroundColor: 'transparent',
+              boxShadow: 'none',
+            }}>
+              <input
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                onFocus={() => setTitleFocused(true)}
+                onBlur={handleTitleBlur}
+                style={{
+                  ...inputBase,
+                  fontSize: 18,
+                  fontFamily: 'var(--font-display)',
+                  fontWeight: 700,
+                  letterSpacing: '-0.02em',
+                }}
+              />
+            </div>
           </div>
           <button
             onClick={() => save({ is_important: task.is_important === 1 ? 0 : 1 })}
-            className="p-1.5 rounded-lg hover:bg-surface-alt/60 transition-colors"
+            onMouseEnter={() => setHoverStar(true)}
+            onMouseLeave={() => setHoverStar(false)}
+            style={{
+              padding: 8,
+              borderRadius: 10,
+              border: 'none',
+              cursor: 'pointer',
+              backgroundColor: hoverStar ? 'var(--color-surface-alt)' : 'transparent',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 150ms ease',
+            }}
           >
             <Star
               size={18}
-              className={task.is_important === 1 ? 'text-accent fill-accent' : 'text-text-muted'}
+              style={{
+                color: task.is_important === 1 ? 'var(--color-accent-dark)' : 'var(--color-text-muted)',
+                fill: task.is_important === 1 ? 'var(--color-accent)' : 'none',
+              }}
             />
           </button>
           <motion.button
             whileHover={{ scale: 1.1, rotate: 90 }}
             whileTap={{ scale: 0.9 }}
             onClick={onClose}
-            className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-alt/60 transition-colors"
+            onMouseEnter={() => setHoverClose(true)}
+            onMouseLeave={() => setHoverClose(false)}
+            style={{
+              padding: 8,
+              borderRadius: 10,
+              border: 'none',
+              cursor: 'pointer',
+              backgroundColor: hoverClose ? 'var(--color-surface-alt)' : 'transparent',
+              color: hoverClose ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'background-color 150ms ease, color 150ms ease',
+            }}
           >
             <X size={16} />
           </motion.button>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto space-y-6" style={{ padding: '20px 28px 28px' }}>
+        {/* ─── Content ─── */}
+        <div style={{
+          flex: 1,
+          overflowY: 'auto',
+          padding: '20px 28px 28px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 24,
+        }}>
           {/* Description */}
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            onBlur={handleDescBlur}
-            placeholder="Agregar descripción..."
-            className="w-full text-[13.5px] bg-transparent outline-none text-text-secondary placeholder:text-text-muted/40 resize-none min-h-[60px]"
-            rows={3}
-          />
+          <div style={descFocused ? inputFieldFocused : {
+            ...inputField,
+            border: '1.5px solid transparent',
+            backgroundColor: 'transparent',
+            boxShadow: 'none',
+          }}>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              onFocus={() => setDescFocused(true)}
+              onBlur={handleDescBlur}
+              placeholder="Agregar descripci\u00f3n..."
+              rows={3}
+              style={{
+                ...inputBase,
+                fontSize: 13.5,
+                lineHeight: 1.6,
+                resize: 'none',
+                minHeight: 60,
+                color: description ? 'var(--color-text-secondary)' : undefined,
+              }}
+            />
+          </div>
 
-          {/* Properties grid */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* ─── Properties Grid ─── */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: 20,
+          }}>
             {/* Priority */}
             <div>
-              <label className="section-label block mb-2">Prioridad</label>
-              <div className="flex gap-2">
-                {priorityOptions.map((p) => (
-                  <button
-                    key={p.value}
-                    onClick={() => save({ priority: p.value as Task['priority'] })}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-medium transition-all ${
-                      task.priority === p.value
-                        ? 'ring-2 ring-primary/25 bg-surface-alt/50'
-                        : 'bg-surface-alt/25 hover:bg-surface-alt/50'
-                    }`}
-                  >
-                    <span className={`w-2 h-2 rounded-full ${p.color}`} />
-                    {p.label}
-                  </button>
-                ))}
+              <p style={sectionLabel}>Prioridad</p>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {priorityOptions.map((p) => {
+                  const isActive = task.priority === p.value
+                  return (
+                    <PriorityButton
+                      key={p.value}
+                      label={p.label}
+                      color={priorityColors[p.value]}
+                      isActive={isActive}
+                      onClick={() => save({ priority: p.value as Task['priority'] })}
+                    />
+                  )
+                })}
               </div>
             </div>
 
             {/* Column/Status */}
-            <div className="relative">
-              <label className="section-label block mb-2">Estado</label>
-              <button
-                onClick={() => setShowColumnPicker(!showColumnPicker)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-alt/25 hover:bg-surface-alt/50 text-[12px] font-medium transition-colors w-full"
+            <div style={{ position: 'relative' }}>
+              <p style={sectionLabel}>Estado</p>
+              <StatusDropdown
+                value={columns.find((c) => c.id === task.column_id)?.name ?? 'Sin columna'}
+                isOpen={showColumnPicker}
+                onToggle={() => setShowColumnPicker(!showColumnPicker)}
+                onClose={() => setShowColumnPicker(false)}
               >
-                <span className="text-text-primary truncate">
-                  {columns.find((c) => c.id === task.column_id)?.name ?? 'Sin columna'}
-                </span>
-                <ChevronDown size={12} className="text-text-muted ml-auto" />
-              </button>
-              {showColumnPicker && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowColumnPicker(false)} />
-                  <div className="absolute top-full mt-1.5 left-0 z-50 glass-strong rounded-xl shadow-lg p-1.5 min-w-[170px]">
-                    {columns.map((col) => (
-                      <button
-                        key={col.id}
-                        onClick={() => {
-                          save({ column_id: col.id })
-                          setShowColumnPicker(false)
-                        }}
-                        className={`w-full px-3 py-2 text-[12px] text-left rounded-lg transition-colors ${
-                          col.id === task.column_id ? 'bg-primary-light/50 text-primary font-medium' : 'text-text-primary hover:bg-surface-alt/50'
-                        }`}
-                      >
-                        {col.name}
-                      </button>
-                    ))}
-                  </div>
-                </>
-              )}
+                {columns.map((col) => (
+                  <DropdownItem
+                    key={col.id}
+                    label={col.name}
+                    isActive={col.id === task.column_id}
+                    onClick={() => {
+                      save({ column_id: col.id })
+                      setShowColumnPicker(false)
+                    }}
+                  />
+                ))}
+              </StatusDropdown>
             </div>
 
             {/* Due date */}
             <div>
-              <label className="section-label block mb-2">Fecha límite</label>
-              <div className="flex items-center gap-2">
-                <Calendar size={13} className="text-text-muted" />
+              <p style={sectionLabel}>Fecha l\u00edmite</p>
+              <div style={{
+                ...inputField,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '8px 12px',
+              }}>
+                <Calendar size={14} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
                 <input
                   type="date"
                   value={task.due_date ?? ''}
                   onChange={(e) => save({ due_date: e.target.value || null })}
-                  className="text-[12px] bg-transparent outline-none text-text-primary"
+                  style={{
+                    ...inputBase,
+                    fontSize: 12.5,
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                  }}
                 />
               </div>
             </div>
 
             {/* Time */}
             <div>
-              <label className="section-label block mb-2">Hora</label>
-              <div className="flex items-center gap-2">
-                <Clock size={13} className="text-text-muted" />
+              <p style={sectionLabel}>Hora</p>
+              <div style={{
+                ...inputField,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '8px 12px',
+              }}>
+                <Clock size={14} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
                 <input
                   type="time"
                   value={task.due_time ?? ''}
                   onChange={(e) => save({ due_time: e.target.value || null })}
-                  className="text-[12px] bg-transparent outline-none text-text-primary"
+                  style={{
+                    ...inputBase,
+                    fontSize: 12.5,
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                  }}
                 />
               </div>
             </div>
 
             {/* Estimated time */}
             <div>
-              <label className="section-label block mb-2">Tiempo estimado</label>
-              <div className="flex items-center gap-2">
-                <Clock size={13} className="text-text-muted" />
+              <p style={sectionLabel}>Tiempo estimado</p>
+              <div style={{
+                ...inputField,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                padding: '8px 12px',
+              }}>
+                <Clock size={14} style={{ color: 'var(--color-primary)', flexShrink: 0 }} />
                 <input
                   type="number"
                   value={task.estimated_minutes ?? ''}
                   onChange={(e) => save({ estimated_minutes: e.target.value ? parseInt(e.target.value) : null })}
                   placeholder="min"
-                  className="text-[12px] bg-transparent outline-none text-text-primary w-16"
                   min={0}
+                  style={{
+                    ...inputBase,
+                    fontSize: 12.5,
+                    fontWeight: 500,
+                    width: 50,
+                  }}
                 />
-                <span className="text-[11px] text-text-muted">minutos</span>
+                <span style={{
+                  fontSize: 11,
+                  color: 'var(--color-text-muted)',
+                  fontWeight: 500,
+                }}>minutos</span>
               </div>
             </div>
           </div>
 
           {/* Recurrence */}
-          <RecurrenceConfig task={task} onSave={save} />
+          <div style={{
+            padding: '16px 18px',
+            borderRadius: 14,
+            backgroundColor: 'var(--color-surface-solid)',
+            border: '1px solid var(--color-border)',
+          }}>
+            <RecurrenceConfig task={task} onSave={save} />
+          </div>
 
-          {/* Tags */}
+          {/* ─── Tags ─── */}
           <div>
-            <div className="flex items-center justify-between mb-2.5">
-              <label className="section-label">Etiquetas</label>
-              <button
-                onClick={() => setShowTagPicker(!showTagPicker)}
-                className="p-1 rounded text-text-muted hover:text-primary transition-colors"
-              >
-                <Plus size={13} />
-              </button>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 10,
+            }}>
+              <p style={{ ...sectionLabel, marginBottom: 0 }}>Etiquetas</p>
+              <TagAddButton onClick={() => setShowTagPicker(!showTagPicker)} />
             </div>
-            <div className="flex gap-1.5 flex-wrap">
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {currentTags.map((tag) => (
                 <motion.button
                   key={tag.id}
                   initial={{ scale: 0.8, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   onClick={() => removeTagFromTask(task.id, tag.id)}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-full hover:opacity-70 transition-opacity"
-                  style={{ backgroundColor: tag.color + '30', color: tag.color }}
                   title="Click para quitar"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    padding: '5px 12px',
+                    fontSize: 11,
+                    fontWeight: 600,
+                    borderRadius: 9999,
+                    border: 'none',
+                    cursor: 'pointer',
+                    backgroundColor: tag.color + '25',
+                    color: tag.color,
+                    transition: 'opacity 150ms ease',
+                    fontFamily: 'var(--font-sans)',
+                  }}
+                  whileHover={{ opacity: 0.7 }}
                 >
                   {tag.name}
                   <X size={10} />
                 </motion.button>
               ))}
+              {currentTags.length === 0 && !showTagPicker && (
+                <span style={{ fontSize: 12, color: 'var(--color-text-muted)', opacity: 0.5, fontStyle: 'italic' }}>
+                  Sin etiquetas
+                </span>
+              )}
             </div>
             <AnimatePresence>
               {showTagPicker && (
@@ -308,93 +509,175 @@ export function CardDetail({ task: initialTask, onClose }: CardDetailProps) {
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="mt-2 flex gap-1.5 flex-wrap overflow-hidden"
+                  style={{ marginTop: 10, display: 'flex', gap: 6, flexWrap: 'wrap', overflow: 'hidden' }}
                 >
                   {tags
                     .filter((t) => !currentTags.some((ct) => ct.id === t.id))
                     .map((tag) => (
-                      <button
+                      <TagPickerItem
                         key={tag.id}
+                        tag={tag}
                         onClick={() => addTagToTask(task.id, tag.id)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-full opacity-60 hover:opacity-100 transition-opacity"
-                        style={{ backgroundColor: tag.color + '30', color: tag.color }}
-                      >
-                        <Plus size={10} />
-                        {tag.name}
-                      </button>
+                      />
                     ))}
                 </motion.div>
               )}
             </AnimatePresence>
           </div>
 
-          {/* Subtasks */}
+          {/* ─── Subtasks ─── */}
           <div>
-            <div className="flex items-center justify-between mb-2.5">
-              <label className="section-label">
+            <div style={{ marginBottom: 10 }}>
+              <p style={sectionLabel}>
                 Subtareas {subtasks.length > 0 && `(${completedSubtasks}/${subtasks.length})`}
-              </label>
+              </p>
             </div>
             {subtasks.length > 0 && (
-              <ProgressBar value={subtaskProgress} size="sm" className="mb-3" />
+              <div style={{ marginBottom: 14 }}>
+                <ProgressBar value={subtaskProgress} size="sm" />
+              </div>
             )}
-            <div className="space-y-1">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
               {subtasks.map((sub) => (
-                <div key={sub.id} className="flex items-center gap-2 py-1">
+                <div key={sub.id} style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '8px 12px',
+                  borderRadius: 10,
+                  backgroundColor: 'var(--color-surface-solid)',
+                  border: '1px solid var(--color-border)',
+                  transition: 'border-color 150ms ease',
+                }}>
                   <Checkbox
                     checked={sub.is_completed === 1}
                     onChange={() => handleToggleSubtask(sub)}
                   />
-                  <span className={`text-[13px] ${sub.is_completed === 1 ? 'text-text-muted line-through' : 'text-text-primary'}`}>
+                  <span style={{
+                    fontSize: 13,
+                    color: sub.is_completed === 1 ? 'var(--color-text-muted)' : 'var(--color-text-primary)',
+                    textDecoration: sub.is_completed === 1 ? 'line-through' : 'none',
+                    fontWeight: 450,
+                  }}>
                     {sub.title}
                   </span>
                 </div>
               ))}
             </div>
-            <div className="flex items-center gap-2 mt-2">
-              <Plus size={14} className="text-text-muted" />
+            {/* Add subtask input */}
+            <div style={{
+              ...(subtaskFocused ? inputFieldFocused : inputField),
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10,
+              marginTop: 8,
+              padding: '8px 12px',
+            }}>
+              <Plus size={14} style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />
               <input
                 value={newSubtask}
                 onChange={(e) => setNewSubtask(e.target.value)}
+                onFocus={() => setSubtaskFocused(true)}
+                onBlur={() => setSubtaskFocused(false)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleAddSubtask() }}
                 placeholder="Agregar subtarea..."
-                className="flex-1 text-[13px] bg-transparent outline-none text-text-primary placeholder:text-text-muted/40"
+                style={{
+                  ...inputBase,
+                  fontSize: 13,
+                  fontWeight: 450,
+                }}
               />
             </div>
           </div>
 
-          {/* Timestamps */}
-          <div className="flex gap-4 text-[10px] text-text-muted pt-4 border-t border-border">
-            <span>Creada: {new Date(task.created_at).toLocaleDateString('es-AR')}</span>
-            <span>Modificada: {new Date(task.updated_at).toLocaleDateString('es-AR')}</span>
+          {/* ─── Timestamps ─── */}
+          <div style={{
+            display: 'flex',
+            gap: 16,
+            paddingTop: 16,
+            borderTop: '1px solid var(--color-border)',
+          }}>
+            <span style={{ fontSize: 10, color: 'var(--color-text-muted)', fontWeight: 500 }}>
+              Creada: {new Date(task.created_at).toLocaleDateString('es-AR')}
+            </span>
+            <span style={{ fontSize: 10, color: 'var(--color-text-muted)', fontWeight: 500 }}>
+              Modificada: {new Date(task.updated_at).toLocaleDateString('es-AR')}
+            </span>
             {task.completed_at && (
-              <span>Completada: {new Date(task.completed_at).toLocaleDateString('es-AR')}</span>
+              <span style={{ fontSize: 10, color: 'var(--color-text-muted)', fontWeight: 500 }}>
+                Completada: {new Date(task.completed_at).toLocaleDateString('es-AR')}
+              </span>
             )}
           </div>
         </div>
 
-        {/* Footer actions */}
-        <div className="flex items-center gap-2 border-t border-border" style={{ padding: '16px 28px' }}>
+        {/* ─── Footer ─── */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          borderTop: '1px solid var(--color-border)',
+          padding: '14px 28px',
+        }}>
           <button
             onClick={() => save({ is_archived: 1 }).then(onClose)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] text-text-muted hover:text-text-primary hover:bg-surface-alt/60 transition-colors"
+            onMouseEnter={() => setHoverArchive(true)}
+            onMouseLeave={() => setHoverArchive(false)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 7,
+              padding: '8px 14px',
+              borderRadius: 10,
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: 12,
+              fontWeight: 500,
+              fontFamily: 'var(--font-sans)',
+              backgroundColor: hoverArchive ? 'var(--color-surface-alt)' : 'transparent',
+              color: hoverArchive ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
+              transition: 'all 150ms ease',
+            }}
           >
             <Archive size={13} />
             Archivar
           </button>
-          <div className="flex-1" />
+          <div style={{ flex: 1 }} />
           {showDeleteConfirm ? (
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] text-danger">¿Segura?</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 11, color: 'var(--color-danger)', fontWeight: 600 }}>\u00bfSegura?</span>
               <button
                 onClick={handleDelete}
-                className="px-3 py-1.5 rounded-lg bg-danger text-white text-[12px] font-medium"
+                style={{
+                  padding: '7px 14px',
+                  borderRadius: 10,
+                  border: 'none',
+                  cursor: 'pointer',
+                  backgroundColor: 'var(--color-danger)',
+                  color: 'var(--color-text-on-danger)',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  fontFamily: 'var(--font-sans)',
+                  boxShadow: 'var(--shadow-sm)',
+                  transition: 'all 150ms ease',
+                }}
               >
                 Eliminar
               </button>
               <button
                 onClick={() => setShowDeleteConfirm(false)}
-                className="px-3 py-1.5 rounded-lg text-[12px] text-text-muted hover:bg-surface-alt/60"
+                style={{
+                  padding: '7px 14px',
+                  borderRadius: 10,
+                  border: 'none',
+                  cursor: 'pointer',
+                  backgroundColor: 'transparent',
+                  color: 'var(--color-text-muted)',
+                  fontSize: 12,
+                  fontWeight: 500,
+                  fontFamily: 'var(--font-sans)',
+                  transition: 'all 150ms ease',
+                }}
               >
                 Cancelar
               </button>
@@ -402,7 +685,23 @@ export function CardDetail({ task: initialTask, onClose }: CardDetailProps) {
           ) : (
             <button
               onClick={() => setShowDeleteConfirm(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] text-danger hover:bg-danger-light/60 transition-colors"
+              onMouseEnter={() => setHoverDelete(true)}
+              onMouseLeave={() => setHoverDelete(false)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 7,
+                padding: '8px 14px',
+                borderRadius: 10,
+                border: 'none',
+                cursor: 'pointer',
+                fontSize: 12,
+                fontWeight: 500,
+                fontFamily: 'var(--font-sans)',
+                backgroundColor: hoverDelete ? 'var(--color-danger-light)' : 'transparent',
+                color: 'var(--color-danger)',
+                transition: 'all 150ms ease',
+              }}
             >
               <Trash2 size={13} />
               Eliminar
@@ -411,5 +710,192 @@ export function CardDetail({ task: initialTask, onClose }: CardDetailProps) {
         </div>
       </motion.div>
     </div>
+  )
+}
+
+/* ═══════════════════════════════════════
+   Sub-components (local, inline styles)
+   ═══════════════════════════════════════ */
+
+function PriorityButton({ label, color, isActive, onClick }: {
+  label: string; color: string; isActive: boolean; onClick: () => void
+}) {
+  const [hover, setHover] = useState(false)
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 7,
+        padding: '7px 14px',
+        borderRadius: 10,
+        border: isActive ? `2px solid ${color}` : '1.5px solid var(--color-border)',
+        cursor: 'pointer',
+        fontSize: 12,
+        fontWeight: isActive ? 600 : 500,
+        fontFamily: 'var(--font-sans)',
+        backgroundColor: isActive ? color + '15' : (hover ? 'var(--color-surface-alt)' : 'var(--color-surface-solid)'),
+        color: isActive ? color : 'var(--color-text-secondary)',
+        transition: 'all 180ms cubic-bezier(0.4, 0, 0.2, 1)',
+        transform: isActive ? 'scale(1.02)' : 'none',
+        boxShadow: isActive ? `0 2px 8px ${color}20` : 'none',
+      }}
+    >
+      <span style={{
+        width: 8,
+        height: 8,
+        borderRadius: '50%',
+        backgroundColor: color,
+        boxShadow: isActive ? `0 0 6px ${color}40` : 'none',
+        transition: 'box-shadow 180ms ease',
+      }} />
+      {label}
+    </button>
+  )
+}
+
+function StatusDropdown({ value, isOpen, onToggle, onClose, children }: {
+  value: string; isOpen: boolean; onToggle: () => void; onClose: () => void; children: React.ReactNode
+}) {
+  const [hover, setHover] = useState(false)
+  return (
+    <div style={{ position: 'relative' }}>
+      <button
+        onClick={onToggle}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          padding: '8px 12px',
+          borderRadius: 10,
+          border: '1.5px solid var(--color-border)',
+          cursor: 'pointer',
+          fontSize: 12.5,
+          fontWeight: 500,
+          fontFamily: 'var(--font-sans)',
+          width: '100%',
+          backgroundColor: hover ? 'var(--color-surface-alt)' : 'var(--color-surface-solid)',
+          color: 'var(--color-text-primary)',
+          transition: 'all 150ms ease',
+          boxShadow: 'var(--shadow-inner)',
+        }}
+      >
+        <span style={{ flex: 1, textAlign: 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {value}
+        </span>
+        <ChevronDown size={12} style={{
+          color: 'var(--color-text-muted)',
+          transition: 'transform 200ms ease',
+          transform: isOpen ? 'rotate(180deg)' : 'none',
+        }} />
+      </button>
+      {isOpen && (
+        <>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 40 }} onClick={onClose} />
+          <div className="glass-strong" style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            zIndex: 50,
+            marginTop: 6,
+            borderRadius: 12,
+            boxShadow: 'var(--shadow-lg)',
+            padding: 6,
+            minWidth: 180,
+          }}>
+            {children}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+function DropdownItem({ label, isActive, onClick }: {
+  label: string; isActive: boolean; onClick: () => void
+}) {
+  const [hover, setHover] = useState(false)
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        width: '100%',
+        padding: '8px 12px',
+        borderRadius: 8,
+        border: 'none',
+        cursor: 'pointer',
+        fontSize: 12.5,
+        fontWeight: isActive ? 600 : 450,
+        fontFamily: 'var(--font-sans)',
+        textAlign: 'left',
+        backgroundColor: isActive ? 'var(--color-primary-light)' : (hover ? 'var(--color-surface-alt)' : 'transparent'),
+        color: isActive ? 'var(--color-primary)' : 'var(--color-text-primary)',
+        transition: 'all 120ms ease',
+      }}
+    >
+      {label}
+    </button>
+  )
+}
+
+function TagAddButton({ onClick }: { onClick: () => void }) {
+  const [hover, setHover] = useState(false)
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        padding: 5,
+        borderRadius: 8,
+        border: 'none',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: hover ? 'var(--color-primary-light)' : 'transparent',
+        color: hover ? 'var(--color-primary)' : 'var(--color-text-muted)',
+        transition: 'all 150ms ease',
+      }}
+    >
+      <Plus size={14} />
+    </button>
+  )
+}
+
+function TagPickerItem({ tag, onClick }: { tag: TagType; onClick: () => void }) {
+  const [hover, setHover] = useState(false)
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 5,
+        padding: '5px 12px',
+        fontSize: 11,
+        fontWeight: 600,
+        borderRadius: 9999,
+        border: 'none',
+        cursor: 'pointer',
+        backgroundColor: tag.color + '25',
+        color: tag.color,
+        opacity: hover ? 1 : 0.6,
+        transition: 'opacity 150ms ease',
+        fontFamily: 'var(--font-sans)',
+      }}
+    >
+      <Plus size={10} />
+      {tag.name}
+    </button>
   )
 }

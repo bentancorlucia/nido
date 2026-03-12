@@ -43,10 +43,10 @@ export function ProjectProgress({ projectId, size = 'md', showLabel = true, clas
   const percentage = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0
 
   return (
-    <div className={`flex flex-col gap-1 ${className}`}>
+    <div className={`pprogress-root ${className}`}>
       <ProgressBar value={percentage} size={size} showLabel={showLabel} />
       {showLabel && (
-        <span className="text-[11px] text-text-muted">
+        <span className="pprogress-label">
           {stats.completed}/{stats.total} tareas completadas
         </span>
       )}

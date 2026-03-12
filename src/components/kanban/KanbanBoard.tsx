@@ -2,26 +2,27 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   DndContext,
   DragOverlay,
-  closestCorners,
+  pointerWithin,
+  rectIntersection,
   PointerSensor,
   useSensor,
   useSensors,
   type DragStartEvent,
   type DragEndEvent,
   type DragOverEvent,
+  type CollisionDetection,
 } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
-import { motion } from 'framer-motion'
-import { ChevronDown, Filter, ArrowUpDown } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { ChevronDown, SlidersHorizontal, Kanban } from 'lucide-react'
 import { KanbanColumn } from './KanbanColumn'
 import { KanbanCard } from './KanbanCard'
 import { AddColumn } from './AddColumn'
-import { QuickAddTask } from './QuickAddTask'
 import { KanbanFilters } from './KanbanFilters'
 import { useProjectStore } from '../../stores/useProjectStore'
 import { useTaskStore } from '../../stores/useTaskStore'
 import { dbQuery } from '../../lib/ipc'
-import type { Task, Tag } from '../../types'
+import type { Task } from '../../types'
 
 interface KanbanBoardProps {
   onCardClick: (task: Task) => void
@@ -29,10 +30,9 @@ interface KanbanBoardProps {
 
 export function KanbanBoard({ onCardClick }: KanbanBoardProps) {
   const { projects, columns, selectedProjectId, selectProject, createColumn, updateColumn, deleteColumn, loadColumns } = useProjectStore()
-  const { tasks, taskTags, loadTasks, getFilteredTasks, moveTask, reorderTasks } = useTaskStore()
+  const { tasks, taskTags, loadTasks, getFilteredTasks, moveTask, reorderTasks, createTask } = useTaskStore()
 
   const [activeTask, setActiveTask] = useState<Task | null>(null)
-  const [quickAddColumnId, setQuickAddColumnId] = useState<string | null>(null)
   const [showFilters, setShowFilters] = useState(false)
   const [showProjectPicker, setShowProjectPicker] = useState(false)
   const [subtaskCounts, setSubtaskCounts] = useState<Record<string, { total: number; completed: number }>>({})
@@ -43,6 +43,12 @@ export function KanbanBoard({ onCardClick }: KanbanBoardProps) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   )
+
+  const collisionDetection: CollisionDetection = useCallback((args) => {
+    const pointerCollisions = pointerWithin(args)
+    if (pointerCollisions.length > 0) return pointerCollisions
+    return rectIntersection(args)
+  }, [])
 
   useEffect(() => {
     if (selectedProjectId) {
@@ -78,9 +84,24 @@ export function KanbanBoard({ onCardClick }: KanbanBoardProps) {
     if (task) setActiveTask(task)
   }
 
-  const handleDragOver = (_event: DragOverEvent) => {
-    // Handled in dragEnd
-  }
+  const handleDragOver = useCallback((event: DragOverEvent) => {
+    const { active, over } = event
+    if (!over || !selectedProjectId) return
+
+    const activeId = active.id as string
+    const overId = over.id as string
+
+    const activeTaskData = tasks.find((t) => t.id === activeId)
+    if (!activeTaskData) return
+
+    const overColumn = columns.find((c) => c.id === overId)
+    const overTask = tasks.find((t) => t.id === overId)
+    const targetColumnId = overColumn?.id ?? overTask?.column_id
+
+    if (!targetColumnId || activeTaskData.column_id === targetColumnId) return
+
+    moveTask(activeId, targetColumnId, tasks.filter((t) => t.column_id === targetColumnId).length)
+  }, [columns, tasks, selectedProjectId, moveTask])
 
   const handleDragEnd = useCallback(async (event: DragEndEvent) => {
     const { active, over } = event
@@ -91,22 +112,20 @@ export function KanbanBoard({ onCardClick }: KanbanBoardProps) {
     const activeId = active.id as string
     const overId = over.id as string
 
-    // Find which column the task was dropped on
     const overColumn = columns.find((c) => c.id === overId)
     const overTask = tasks.find((t) => t.id === overId)
     const targetColumnId = overColumn?.id ?? overTask?.column_id
 
     if (!targetColumnId) return
 
-    const activeTask = tasks.find((t) => t.id === activeId)
-    if (!activeTask) return
+    const activeTaskItem = tasks.find((t) => t.id === activeId)
+    if (!activeTaskItem) return
 
     const targetTasks = tasks
       .filter((t) => t.column_id === targetColumnId && t.id !== activeId)
       .sort((a, b) => a.sort_order - b.sort_order)
 
-    if (activeTask.column_id === targetColumnId) {
-      // Reorder within same column
+    if (activeTaskItem.column_id === targetColumnId) {
       const currentTasks = tasks
         .filter((t) => t.column_id === targetColumnId)
         .sort((a, b) => a.sort_order - b.sort_order)
@@ -117,18 +136,15 @@ export function KanbanBoard({ onCardClick }: KanbanBoardProps) {
         await reorderTasks(targetColumnId, reordered.map((t) => t.id))
       }
     } else {
-      // Move to different column
       let insertIndex = targetTasks.findIndex((t) => t.id === overId)
       if (insertIndex === -1) insertIndex = targetTasks.length
       await moveTask(activeId, targetColumnId, insertIndex)
 
-      // Reorder target column
       const newOrder = [...targetTasks]
-      newOrder.splice(insertIndex, 0, activeTask)
+      newOrder.splice(insertIndex, 0, activeTaskItem)
       await reorderTasks(targetColumnId, newOrder.map((t) => t.id))
     }
 
-    // Reload tasks
     await loadTasks(selectedProjectId)
   }, [columns, tasks, selectedProjectId])
 
@@ -142,130 +158,170 @@ export function KanbanBoard({ onCardClick }: KanbanBoardProps) {
     await updateColumn(id, { name } as Partial<import('../../types').KanbanColumn>)
   }
 
+  const handleQuickAdd = async (columnId: string, title: string) => {
+    if (!selectedProjectId) return
+    await createTask({
+      title,
+      project_id: selectedProjectId,
+      column_id: columnId,
+    })
+  }
+
+  const totalTasks = tasks.length
+  const completedTasks = tasks.filter((t) => t.is_completed === 1).length
   return (
-    <div className="flex flex-col h-full">
+    <div className="kboard">
       {/* Header */}
-      <div className="flex items-center gap-3 border-b border-border flex-shrink-0" style={{ height: 48, padding: '0 24px' }}>
+      <div className="kboard__header">
         {/* Project selector */}
-        <div className="relative">
+        <div className="kboard__project-wrap">
           <button
             onClick={() => setShowProjectPicker(!showProjectPicker)}
-            className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl glass hover:shadow-sm transition-all font-medium" style={{ fontSize: 13 }}
+            className={`kboard__project-btn${showProjectPicker ? ' kboard__project-btn--open' : ''}`}
           >
             {selectedProject && (
-              <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: selectedProject.color ?? '#01A7C2' }} />
+              <span
+                className="kboard__project-dot"
+                style={{ backgroundColor: selectedProject.color ?? '#01A7C2' }}
+              />
             )}
-            <span className="text-text-primary">
+            <span className="kboard__project-name">
               {selectedProject?.name ?? 'Seleccionar proyecto'}
             </span>
-            <ChevronDown size={13} className="text-text-muted ml-1" />
+            <ChevronDown size={15} className={`kboard__chevron${showProjectPicker ? ' kboard__chevron--open' : ''}`} />
           </button>
 
-          {showProjectPicker && (
-            <>
-              <div className="fixed inset-0 z-40" onClick={() => setShowProjectPicker(false)} />
-              <motion.div
-                initial={{ opacity: 0, y: -4 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="absolute left-0 top-full mt-1.5 z-50 glass-strong rounded-xl shadow-lg p-1.5 min-w-[220px] max-h-64 overflow-y-auto"
-              >
-                {activeProjects.length === 0 ? (
-                  <p className="px-3 py-2 text-[12px] text-text-muted italic">Sin proyectos</p>
-                ) : (
-                  activeProjects.map((p) => (
-                    <button
-                      key={p.id}
-                      onClick={() => { selectProject(p.id); setShowProjectPicker(false) }}
-                      className={`w-full flex items-center gap-2.5 px-3.5 py-2 text-[13px] rounded-lg transition-colors ${
-                        p.id === selectedProjectId
-                          ? 'bg-primary-light/50 text-primary font-medium'
-                          : 'text-text-primary hover:bg-surface-alt/50'
-                      }`}
-                    >
-                      <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: p.color ?? '#01A7C2' }} />
-                      {p.name}
-                    </button>
-                  ))
-                )}
-              </motion.div>
-            </>
-          )}
+          <AnimatePresence>
+            {showProjectPicker && (
+              <>
+                <div className="kboard__picker-overlay" onClick={() => setShowProjectPicker(false)} />
+                <motion.div
+                  initial={{ opacity: 0, y: -6, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -6, scale: 0.97 }}
+                  transition={{ duration: 0.15 }}
+                  className="kboard__picker glass-strong floating-menu"
+                >
+                  {activeProjects.length === 0 ? (
+                    <p className="kboard__picker-empty">Sin proyectos</p>
+                  ) : (
+                    activeProjects.map((p) => (
+                      <button
+                        key={p.id}
+                        onClick={() => { selectProject(p.id); setShowProjectPicker(false) }}
+                        className={p.id === selectedProjectId ? 'kboard__picker-item--active' : ''}
+                      >
+                        <span
+                          className="kboard__picker-dot"
+                          style={{ backgroundColor: p.color ?? '#01A7C2' }}
+                        />
+                        {p.name}
+                      </button>
+                    ))
+                  )}
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
         </div>
 
-        <div className="flex-1" />
+        {/* Task summary */}
+        {selectedProject && (
+          <div className="kboard__summary">
+            <span className="kboard__summary-total">{totalTasks} tareas</span>
+            {completedTasks > 0 && (
+              <span className="kboard__summary-done">{completedTasks} hechas</span>
+            )}
+          </div>
+        )}
 
-        {/* Filter & sort */}
+        <div className="kboard__spacer" />
+
+        {/* Filter toggle */}
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-[12.5px] font-medium transition-all ${
-            showFilters ? 'bg-primary-light/50 text-primary' : 'text-text-muted hover:text-text-primary hover:bg-surface-alt/50'
-          }`}
+          className={`kboard__filter-btn${showFilters ? ' kboard__filter-btn--active' : ''}`}
         >
-          <Filter size={13} />
+          <SlidersHorizontal size={15} />
           Filtros
         </button>
       </div>
 
-      {/* Filters bar */}
-      {showFilters && <KanbanFilters />}
+      {/* Filters */}
+      <AnimatePresence>
+        {showFilters && <KanbanFilters />}
+      </AnimatePresence>
 
-      {/* Board */}
+      {/* Board content */}
       {!selectedProjectId ? (
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <p className="text-text-muted text-sm">Seleccioná un proyecto para ver el tablero</p>
-          </div>
+        <div className="kboard__empty">
+          <motion.div
+            className="kboard__empty-inner"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: [0.25, 1, 0.5, 1] }}
+          >
+            <div className="kboard__empty-icon">
+              <Kanban size={40} strokeWidth={1.5} />
+            </div>
+            <p className="kboard__empty-title">Tablero de tareas</p>
+            <p className="kboard__empty-subtitle">Seleccioná un proyecto para empezar</p>
+          </motion.div>
         </div>
       ) : (
-        <div className="flex-1 overflow-x-auto overflow-y-hidden py-5" style={{ paddingLeft: 24, paddingRight: 24 }}>
+        <div className="kboard__content">
           <DndContext
             sensors={sensors}
-            collisionDetection={closestCorners}
+            collisionDetection={collisionDetection}
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
           >
-            <div className="flex gap-5 h-full">
-              {columns.map((col) => (
-                <KanbanColumn
+            <div className="kboard__columns">
+              {columns.map((col, i) => (
+                <motion.div
                   key={col.id}
-                  column={col}
-                  tasks={getFilteredTasks(col.id)}
-                  taskTags={taskTags}
-                  subtaskCounts={subtaskCounts}
-                  onCardClick={onCardClick}
-                  onRenameColumn={handleRenameColumn}
-                  onDeleteColumn={deleteColumn}
-                  onQuickAdd={setQuickAddColumnId}
-                />
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.06, duration: 0.3, ease: [0.25, 1, 0.5, 1] }}
+                  className="kboard__col-wrap"
+                >
+                  <KanbanColumn
+                    column={col}
+                    tasks={getFilteredTasks(col.id)}
+                    taskTags={taskTags}
+                    subtaskCounts={subtaskCounts}
+                    onCardClick={onCardClick}
+                    onRenameColumn={handleRenameColumn}
+                    onDeleteColumn={deleteColumn}
+                    onQuickAdd={handleQuickAdd}
+                  />
+                </motion.div>
               ))}
               <AddColumn onAdd={handleAddColumn} />
             </div>
 
-            <DragOverlay>
+            <DragOverlay
+              dropAnimation={{
+                duration: 200,
+                easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
+              }}
+            >
               {activeTask && (
-                <div className="w-72 opacity-90">
+                <div className="kboard__drag-overlay">
                   <KanbanCard
                     task={activeTask}
                     tags={taskTags[activeTask.id] ?? []}
                     subtaskCount={subtaskCounts[activeTask.id]}
                     onClick={() => {}}
                     onComplete={() => {}}
+                    isDragOverlay
                   />
                 </div>
               )}
             </DragOverlay>
           </DndContext>
         </div>
-      )}
-
-      {/* Quick add modal */}
-      {quickAddColumnId && selectedProjectId && (
-        <QuickAddTask
-          columnId={quickAddColumnId}
-          projectId={selectedProjectId}
-          onClose={() => setQuickAddColumnId(null)}
-        />
       )}
     </div>
   )

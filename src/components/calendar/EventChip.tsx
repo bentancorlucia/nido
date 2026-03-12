@@ -20,11 +20,7 @@ export function EventChip({ event, compact = false, onClick }: EventChipProps) {
       whileHover={{ y: -1, scale: 1.02 }}
       whileTap={{ scale: 0.97 }}
       onClick={() => onClick?.(event)}
-      className={`
-        w-full text-left rounded-md cursor-pointer
-        transition-shadow duration-150 hover:shadow-md
-        ${compact ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-1 text-[11px]'}
-      `}
+      className={`event-chip ${compact ? 'event-chip-compact' : 'event-chip-normal'}`}
       style={{
         backgroundColor: `${bgColor}20`,
         borderLeft: `3px solid ${bgColor}`,
@@ -32,11 +28,11 @@ export function EventChip({ event, compact = false, onClick }: EventChipProps) {
       }}
       title={event.title}
     >
-      <span className="flex items-center gap-1 truncate font-medium">
+      <span className="event-chip-inner">
         {startTime && !compact && (
-          <span className="opacity-70 font-mono text-[10px] flex-shrink-0">{startTime}</span>
+          <span className="event-chip-time">{startTime}</span>
         )}
-        <span className="truncate">{event.title}</span>
+        <span className="event-chip-title">{event.title}</span>
       </span>
     </motion.button>
   )

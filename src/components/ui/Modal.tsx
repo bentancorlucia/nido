@@ -11,12 +11,6 @@ interface ModalProps {
   size?: 'sm' | 'md' | 'lg'
 }
 
-const sizeStyles = {
-  sm: 'max-w-md',
-  md: 'max-w-lg',
-  lg: 'max-w-2xl',
-}
-
 export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalProps) {
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
@@ -31,13 +25,13 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
   return (
     <AnimatePresence>
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="modal-overlay-container">
           <motion.div
             variants={overlayVariants}
             initial="hidden"
             animate="visible"
             exit="exit"
-            className="absolute inset-0 bg-black/25 backdrop-blur-sm"
+            className="modal-backdrop"
             onClick={onClose}
           />
           <motion.div
@@ -45,25 +39,22 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
             initial="hidden"
             animate="visible"
             exit="exit"
-            className={`
-              relative w-full ${sizeStyles[size]} mx-4
-              glass-strong rounded-2xl shadow-lift
-            `}
+            className={`modal modal--${size} glass-strong`}
             style={{ padding: '24px' }}
             role="dialog"
             aria-modal="true"
             aria-label={title}
           >
             {title && (
-              <div className="flex items-center justify-between" style={{ marginBottom: 20 }}>
-                <h2 className="font-display font-semibold text-text-primary tracking-tight" style={{ fontSize: 16 }}>
+              <div className="modal__header" style={{ marginBottom: 20 }}>
+                <h2 className="modal__title" style={{ fontSize: 16 }}>
                   {title}
                 </h2>
                 <motion.button
                   whileHover={{ scale: 1.1, rotate: 90 }}
                   whileTap={{ scale: 0.9 }}
                   onClick={onClose}
-                  className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-surface-alt/40 transition-colors"
+                  className="modal__close-btn"
                   aria-label="Cerrar"
                 >
                   <X size={16} />

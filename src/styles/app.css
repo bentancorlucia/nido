@@ -1,0 +1,120 @@
+/* ═══════════════════════════════════════
+   APP
+   App.tsx root styles
+   ═══════════════════════════════════════ */
+
+/* PlaceholderPage */
+.placeholder-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+.placeholder-bg {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.placeholder-bg--dashboard {
+  background: radial-gradient(ellipse at center, color-mix(in srgb, var(--color-primary) 20%, transparent), color-mix(in srgb, var(--color-primary) 5%, transparent), transparent);
+}
+.placeholder-bg--today {
+  background: radial-gradient(ellipse at center, color-mix(in srgb, var(--color-accent) 20%, transparent), color-mix(in srgb, var(--color-accent) 5%, transparent), transparent);
+}
+.placeholder-bg--kanban {
+  background: radial-gradient(ellipse at center, rgba(224, 212, 234, 0.4), rgba(224, 212, 234, 0.1), transparent);
+}
+.placeholder-bg--calendar {
+  background: radial-gradient(ellipse at center, color-mix(in srgb, var(--color-primary) 15%, transparent), color-mix(in srgb, var(--color-accent) 5%, transparent), transparent);
+}
+.placeholder-bg--projects {
+  background: radial-gradient(ellipse at center, rgba(208, 228, 218, 0.4), rgba(208, 228, 218, 0.1), transparent);
+}
+.placeholder-bg--pomodoro {
+  background: radial-gradient(ellipse at center, color-mix(in srgb, var(--color-danger-light) 40%, transparent), color-mix(in srgb, var(--color-danger-light) 10%, transparent), transparent);
+}
+.placeholder-bg--settings {
+  background: radial-gradient(ellipse at center, color-mix(in srgb, var(--color-surface-alt) 60%, transparent), color-mix(in srgb, var(--color-surface-alt) 20%, transparent), transparent);
+}
+
+.placeholder-icon-wrapper {
+  position: relative;
+  margin-bottom: 24px;
+}
+
+.placeholder-icon-glow {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: 24px;
+  opacity: 0.2;
+  filter: blur(24px);
+  transform: scale(1.5);
+}
+
+.placeholder-icon-box {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-lg);
+  color: #fff;
+}
+
+/* Accent gradients for icon glow and box */
+.placeholder-accent--dashboard {
+  background: linear-gradient(to bottom right, var(--color-primary), #38CFEA);
+}
+.placeholder-accent--today {
+  background: linear-gradient(to bottom right, var(--color-accent), #B8CC3A);
+}
+.placeholder-accent--kanban {
+  background: linear-gradient(to bottom right, #6B3A80, #9B5CB0);
+}
+.placeholder-accent--calendar {
+  background: linear-gradient(to bottom right, var(--color-primary), var(--color-accent));
+}
+.placeholder-accent--projects {
+  background: linear-gradient(to bottom right, #304B42, #5B8A72);
+}
+.placeholder-accent--pomodoro {
+  background: linear-gradient(to bottom right, #7E1946, #A83265);
+}
+.placeholder-accent--settings {
+  background: linear-gradient(to bottom right, var(--color-text-muted), var(--color-text-secondary));
+}
+
+.placeholder-content {
+  position: relative;
+}
+
+.placeholder-title {
+  font-size: 30px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: 14px;
+  letter-spacing: -0.025em;
+}
+
+.placeholder-desc {
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  max-width: 24rem;
+  line-height: 1.625;
+}

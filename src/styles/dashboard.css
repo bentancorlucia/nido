@@ -1,0 +1,1024 @@
+/* ═══════════════════════════════════════
+   DASHBOARD
+   Dashboard, WidgetGrid, Widgets, PostIt, PostItBoard
+   ═══════════════════════════════════════ */
+
+/* ─── Dashboard.tsx ─── */
+.dashboard-layout {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dashboard-header {
+  position: relative;
+}
+
+.dashboard-header-inner {
+  position: relative;
+  z-index: 10;
+}
+
+.dashboard-greeting-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.dashboard-sparkle-icon {
+  color: var(--color-accent-dark);
+  margin-bottom: 4px;
+}
+
+.dashboard-date-cap {
+  text-transform: capitalize;
+}
+
+.dashboard-widget-area {
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ─── WidgetGrid.tsx ─── */
+.widgetgrid-outer {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.widgetgrid-card-inner {
+  position: relative;
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+}
+
+.widgetgrid-menu-btn {
+  display: flex;
+  height: 28px;
+  width: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: var(--color-text-muted);
+  opacity: 0;
+  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.widget-card:hover .widgetgrid-menu-btn {
+  opacity: 1;
+}
+
+.widgetgrid-menu-btn:hover {
+  background-color: var(--color-surface-alt);
+  color: var(--color-text-secondary);
+}
+
+.widgetgrid-menu-zone {
+  position: relative;
+  z-index: 30;
+}
+
+.widgetgrid-menu-overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 40;
+}
+
+.widgetgrid-menu-dropdown {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 50;
+  margin-top: 4px;
+  min-width: 160px;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface-solid);
+  padding: 6px;
+  box-shadow: var(--shadow-lg);
+}
+
+.widgetgrid-menu-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  border-radius: 8px;
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  transition: background-color 150ms, color 150ms;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.widgetgrid-menu-item:hover {
+  background-color: var(--color-surface-alt);
+}
+
+.widgetgrid-skeleton {
+  border-radius: 20px;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+}
+
+.widgetgrid-hidden-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  transition: color 150ms;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.widgetgrid-hidden-toggle:hover {
+  color: var(--color-text-secondary);
+}
+
+.widgetgrid-hidden-chips {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.widgetgrid-reset-row {
+  margin-top: auto;
+  display: flex;
+  justify-content: center;
+  padding-bottom: 12px;
+  padding-top: 16px;
+}
+
+.widgetgrid-reset-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 9999px;
+  padding: 6px 16px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+  transition: background-color 150ms, color 150ms;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.widgetgrid-reset-btn:hover {
+  background-color: var(--color-surface-alt);
+  color: var(--color-text-secondary);
+}
+
+/* ─── TodayWidget.tsx ─── */
+.today-container {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.today-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.today-summary-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.today-count {
+  font-size: 24px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  color: var(--color-text-primary);
+}
+
+.today-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.today-empty-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.today-empty-subtitle {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.today-task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.today-task-content {
+  min-width: 0;
+  flex: 1;
+}
+
+.today-task-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--color-text-primary);
+}
+
+.today-task-title.completing {
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+}
+
+.today-task-meta {
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.today-task-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+
+.today-check-icon {
+  color: var(--color-text-on-accent);
+}
+
+/* ─── DeadlinesWidget.tsx ─── */
+.deadlines-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.deadlines-empty-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.deadlines-empty-subtitle {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.deadlines-date-row {
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.deadlines-date-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: capitalize;
+  letter-spacing: 0.05em;
+}
+
+.deadlines-date-label.danger {
+  color: var(--color-danger);
+}
+
+.deadlines-date-label.warning {
+  color: var(--color-warning);
+}
+
+.deadlines-date-label.normal {
+  color: var(--color-text-secondary);
+}
+
+.deadlines-divider {
+  height: 1px;
+  flex: 1;
+  background-color: var(--color-border);
+}
+
+.deadlines-tasks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.deadlines-task-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background-color: color-mix(in srgb, var(--color-surface-solid) 80%, transparent);
+  padding: 10px 12px;
+  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.deadlines-task-row:hover {
+  border-color: var(--color-border-strong);
+  background-color: var(--color-surface-alt);
+}
+
+.deadlines-task-content {
+  min-width: 0;
+  flex: 1;
+}
+
+.deadlines-task-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.deadlines-task-date {
+  margin-top: 2px;
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+
+/* ─── ProgressWidget.tsx ─── */
+.progress-container {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.progress-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.progress-summary-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.progress-summary-count {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.progress-summary-count-icon {
+  color: var(--color-primary);
+}
+
+.progress-summary-count-text {
+  font-size: 12px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.progress-project-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.progress-project-btn {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.progress-project-header {
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.progress-project-info {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 10px;
+}
+
+.progress-project-dot {
+  height: 12px;
+  width: 12px;
+  flex-shrink: 0;
+  border-radius: 9999px;
+}
+
+.progress-project-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  transition: color 150ms;
+}
+
+.progress-project-btn:hover .progress-project-name {
+  color: var(--color-primary);
+}
+
+.progress-project-pct {
+  font-size: 12px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--color-text-muted);
+}
+
+.progress-project-count-row {
+  margin-top: 4px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.progress-project-count {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--color-text-muted);
+}
+
+.progress-empty-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.progress-empty-subtitle {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* ─── PomodoroWidget.tsx ─── */
+.pomodoro-container {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+
+.pomodoro-ring-wrap {
+  position: relative;
+}
+
+.pomodoro-svg {
+  transform: rotate(-90deg);
+}
+
+.pomodoro-time-overlay {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.pomodoro-time-text {
+  font-size: 34px;
+  font-family: var(--font-mono);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--color-text-primary);
+  letter-spacing: -0.025em;
+}
+
+.pomodoro-time-separator {
+  color: var(--color-text-muted);
+}
+
+.pomodoro-phase-label {
+  margin-top: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+}
+
+.pomodoro-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pomodoro-reset-btn {
+  display: flex;
+  height: 36px;
+  width: 36px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface-solid);
+  color: var(--color-text-muted);
+  transition: color 150ms, background-color 150ms;
+  cursor: pointer;
+}
+
+.pomodoro-reset-btn:hover {
+  color: var(--color-text-primary);
+}
+
+.pomodoro-play-btn {
+  display: flex;
+  height: 48px;
+  width: 48px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+}
+
+.pomodoro-play-icon-offset {
+  margin-left: 2px;
+}
+
+.pomodoro-stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pomodoro-stat-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 9999px;
+  border: 1px solid var(--color-border);
+  background-color: var(--color-surface-solid);
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.pomodoro-flame-icon {
+  color: var(--color-warning);
+}
+
+/* ─── MiniCalendarWidget.tsx ─── */
+.minical-container {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.minical-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.minical-nav-btn {
+  display: flex;
+  height: 28px;
+  width: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  color: var(--color-text-muted);
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.minical-nav-btn:hover {
+  background-color: var(--color-surface-alt);
+  color: var(--color-text-primary);
+}
+
+.minical-month-btn {
+  font-size: 13px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-transform: capitalize;
+  color: var(--color-text-primary);
+  transition: color 150ms;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.minical-month-btn:hover {
+  color: var(--color-primary);
+}
+
+.minical-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.minical-weekday {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-text-muted);
+}
+
+.minical-grid {
+  display: grid;
+  flex: 1;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.minical-dots {
+  position: absolute;
+  bottom: 4px;
+  display: flex;
+  gap: 2px;
+}
+
+/* ─── PostItMiniBoard.tsx ─── */
+.postitmini-container {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.postitmini-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.postitmini-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.postitmini-add-btn {
+  display: flex;
+  height: 28px;
+  width: 28px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  background-color: var(--color-primary);
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+  border: none;
+  cursor: pointer;
+}
+
+.postitmini-empty-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.postitmini-empty-create-btn {
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 9999px;
+  background-color: var(--color-primary);
+  padding: 6px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  box-shadow: var(--shadow-sm);
+  border: none;
+  cursor: pointer;
+}
+
+.postitmini-content-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: pre-wrap;
+  font-size: 11px;
+  line-height: 1.375;
+  font-weight: 500;
+  user-select: none;
+}
+
+/* ─── PostIt.tsx ─── */
+.postit-wrap {
+  position: absolute;
+  cursor: grab;
+}
+
+.postit-wrap:active {
+  cursor: grabbing;
+}
+
+.postit-inner {
+  border-radius: 8px;
+  box-shadow: var(--shadow-md);
+  transition: box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.postit-inner:hover {
+  box-shadow: var(--shadow-lg);
+}
+
+.postit-corner {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 24px;
+  height: 24px;
+}
+
+.postit-pin {
+  position: absolute;
+  top: 4px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-2px);
+}
+
+.postit-pin-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 9999px;
+  background-color: var(--color-danger);
+  box-shadow: var(--shadow-sm);
+}
+
+.postit-actions {
+  position: absolute;
+  top: 6px;
+  right: 28px;
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 150ms;
+}
+
+.postit-wrap:hover .postit-actions {
+  opacity: 1;
+}
+
+.postit-action-btn {
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 150ms;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.postit-action-btn:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.postit-content-area {
+  padding: 12px;
+  padding-top: 16px;
+  cursor: text;
+}
+
+.postit-textarea-full {
+  width: 100%;
+  background: transparent;
+  outline: none;
+  resize: none;
+  font-size: 13px;
+  line-height: 1.625;
+  border: none;
+}
+
+.postit-display-text {
+  font-size: 13px;
+  line-height: 1.625;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  min-height: 60px;
+}
+
+.postit-linked-task {
+  padding: 0 12px 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  opacity: 0.6;
+}
+
+.postit-linked-task-text {
+  font-size: 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.postit-fill-current {
+  fill: currentColor;
+}
+
+/* ─── PostItBoard.tsx ─── */
+.postitboard-layout {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.postitboard-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.postitboard-header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.postitboard-icon-wrap {
+  width: 32px;
+  height: 32px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--color-postit-cyan, #A0E5E9) 30%, transparent), color-mix(in srgb, var(--color-postit-lime, #D4E79E) 30%, transparent));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.postitboard-icon {
+  color: var(--color-text-secondary);
+}
+
+.postitboard-title {
+  font-size: 18px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  letter-spacing: -0.025em;
+}
+
+.postitboard-subtitle {
+  font-size: 11px;
+  color: var(--color-text-muted);
+}
+
+.postitboard-add-wrap {
+  position: relative;
+}
+
+.postitboard-add-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-hover));
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: var(--shadow-sm);
+  border: none;
+  cursor: pointer;
+}
+
+.postitboard-color-overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 40;
+}
+
+.postitboard-color-picker {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 8px;
+  z-index: 50;
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  padding: 12px;
+}
+
+.postitboard-color-label {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.postitboard-color-options {
+  display: flex;
+  gap: 8px;
+}
+
+.postitboard-color-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: box-shadow 200ms;
+  cursor: pointer;
+}
+
+.postitboard-color-btn:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.postitboard-canvas {
+  flex: 1;
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+}
+
+.postitboard-texture {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  opacity: 0.03;
+  pointer-events: none;
+}
+
+.postitboard-empty {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.postitboard-empty-icon {
+  color: color-mix(in srgb, var(--color-text-muted) 30%, transparent);
+  margin-bottom: 12px;
+}
+
+.postitboard-empty-text {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.postitboard-empty-highlight {
+  color: var(--color-primary);
+  font-weight: 500;
+}

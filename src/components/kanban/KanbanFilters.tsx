@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { X, Search } from 'lucide-react'
+import { X, Search, ArrowUpDown } from 'lucide-react'
 import { useTaskStore, type SortOption } from '../../stores/useTaskStore'
 import { useTagStore } from '../../stores/useTagStore'
 import { useEffect } from 'react'
@@ -13,9 +13,9 @@ const sortOptions: { value: SortOption; label: string }[] = [
 ]
 
 const priorityOptions = [
-  { value: 'alta', label: 'Alta', color: 'bg-priority-alta' },
-  { value: 'media', label: 'Media', color: 'bg-priority-media' },
-  { value: 'baja', label: 'Baja', color: 'bg-priority-baja' },
+  { value: 'alta', label: 'Alta', cls: 'kfilter__dot--alta' },
+  { value: 'media', label: 'Media', cls: 'kfilter__dot--media' },
+  { value: 'baja', label: 'Baja', cls: 'kfilter__dot--baja' },
 ]
 
 export function KanbanFilters() {
@@ -26,119 +26,107 @@ export function KanbanFilters() {
     loadTags()
   }, [])
 
+  const hasFilters = filters.search || filters.priority || filters.important || filters.overdue || filters.tags.length > 0
+
   return (
     <motion.div
       initial={{ opacity: 0, height: 0 }}
       animate={{ opacity: 1, height: 'auto' }}
       exit={{ opacity: 0, height: 0 }}
-      className="px-8 py-3 border-b border-border flex flex-wrap items-center gap-2.5 overflow-hidden"
+      className="kfilters"
     >
-      {/* Search */}
-      <div className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl glass min-w-[200px]">
-        <Search size={13} className="text-text-muted" />
-        <input
-          value={filters.search}
-          onChange={(e) => setFilters({ search: e.target.value })}
-          placeholder="Buscar tareas..."
-          className="text-[12.5px] bg-transparent outline-none text-text-primary placeholder:text-text-muted/45 flex-1"
-        />
-      </div>
+      <div className="kfilters__inner">
+        {/* Search */}
+        <div className="kfilters__search">
+          <Search size={13} />
+          <input
+            value={filters.search}
+            onChange={(e) => setFilters({ search: e.target.value })}
+            placeholder="Buscar tareas..."
+          />
+        </div>
 
-      {/* Priority filter */}
-      <div className="flex items-center gap-1.5">
-        {priorityOptions.map((p) => (
-          <button
-            key={p.value}
-            onClick={() => setFilters({ priority: filters.priority === p.value ? null : p.value })}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium transition-all ${
-              filters.priority === p.value
-                ? 'bg-primary-light/50 text-primary ring-1 ring-primary/15'
-                : 'text-text-muted hover:bg-surface-alt/50'
-            }`}
-          >
-            <span className={`w-2 h-2 rounded-full ${p.color}`} />
-            {p.label}
-          </button>
-        ))}
-      </div>
+        <div className="kfilters__divider" />
 
-      {/* Important filter */}
-      <button
-        onClick={() => setFilters({ important: filters.important === true ? null : true })}
-        className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-all ${
-          filters.important === true
-            ? 'bg-accent/15 text-accent-dark ring-1 ring-accent/15'
-            : 'text-text-muted hover:bg-surface-alt/50'
-        }`}
-      >
-        ⭐ Importantes
-      </button>
+        {/* Priority */}
+        <div className="kfilters__group">
+          {priorityOptions.map((p) => (
+            <button
+              key={p.value}
+              onClick={() => setFilters({ priority: filters.priority === p.value ? null : p.value })}
+              className={`kfilters__chip${filters.priority === p.value ? ' kfilters__chip--active' : ''}`}
+            >
+              <span className={`kfilters__dot ${p.cls}`} />
+              {p.label}
+            </button>
+          ))}
+        </div>
 
-      {/* Overdue filter */}
-      <button
-        onClick={() => setFilters({ overdue: filters.overdue === true ? null : true })}
-        className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-all ${
-          filters.overdue === true
-            ? 'bg-danger-light/50 text-danger ring-1 ring-danger/15'
-            : 'text-text-muted hover:bg-surface-alt/50'
-        }`}
-      >
-        Vencidas
-      </button>
+        <div className="kfilters__divider" />
 
-      {/* Tag filters */}
-      {tags.map((tag) => (
+        {/* Quick toggles */}
         <button
-          key={tag.id}
-          onClick={() => {
-            const current = filters.tags
-            const next = current.includes(tag.id)
-              ? current.filter((t) => t !== tag.id)
-              : [...current, tag.id]
-            setFilters({ tags: next })
-          }}
-          className={`px-3 py-1.5 rounded-full text-[11px] font-medium transition-all ${
-            filters.tags.includes(tag.id)
-              ? 'ring-1 ring-primary/15'
-              : 'opacity-50 hover:opacity-100'
-          }`}
-          style={{
-            backgroundColor: tag.color + '30',
-            color: tag.color,
-          }}
+          onClick={() => setFilters({ important: filters.important === true ? null : true })}
+          className={`kfilters__chip${filters.important === true ? ' kfilters__chip--star' : ''}`}
         >
-          {tag.name}
+          Importantes
         </button>
-      ))}
+        <button
+          onClick={() => setFilters({ overdue: filters.overdue === true ? null : true })}
+          className={`kfilters__chip${filters.overdue === true ? ' kfilters__chip--danger' : ''}`}
+        >
+          Vencidas
+        </button>
 
-      <div className="flex-1" />
+        {/* Tags */}
+        {tags.length > 0 && (
+          <>
+            <div className="kfilters__divider" />
+            {tags.map((tag) => (
+              <button
+                key={tag.id}
+                onClick={() => {
+                  const current = filters.tags
+                  const next = current.includes(tag.id)
+                    ? current.filter((t) => t !== tag.id)
+                    : [...current, tag.id]
+                  setFilters({ tags: next })
+                }}
+                className={`kfilters__tag${filters.tags.includes(tag.id) ? ' kfilters__tag--active' : ''}`}
+                style={{
+                  '--tag-color': tag.color,
+                  '--tag-bg': tag.color + '25',
+                } as React.CSSProperties}
+              >
+                {tag.name}
+              </button>
+            ))}
+          </>
+        )}
 
-      {/* Sort */}
-      <div className="flex items-center gap-1.5">
-        <span className="text-[10px] text-text-muted uppercase tracking-wider font-semibold mr-1">Ordenar:</span>
-        {sortOptions.map((s) => (
-          <button
-            key={s.value}
-            onClick={() => setSortBy(s.value)}
-            className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${
-              sortBy === s.value
-                ? 'bg-primary-light/50 text-primary'
-                : 'text-text-muted hover:bg-surface-alt/50'
-            }`}
-          >
-            {s.label}
+        <div className="kfilters__spacer" />
+
+        {/* Sort */}
+        <div className="kfilters__sort">
+          <ArrowUpDown size={11} />
+          {sortOptions.map((s) => (
+            <button
+              key={s.value}
+              onClick={() => setSortBy(s.value)}
+              className={`kfilters__sort-btn${sortBy === s.value ? ' kfilters__sort-btn--active' : ''}`}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Reset */}
+        {hasFilters && (
+          <button onClick={resetFilters} className="kfilters__reset" title="Limpiar filtros">
+            <X size={13} />
           </button>
-        ))}
+        )}
       </div>
-
-      {/* Reset */}
-      <button
-        onClick={resetFilters}
-        className="p-1.5 rounded-lg text-text-muted hover:text-danger hover:bg-danger-light/40 transition-colors"
-        title="Limpiar filtros"
-      >
-        <X size={13} />
-      </button>
     </motion.div>
   )
 }

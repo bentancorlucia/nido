@@ -20,13 +20,18 @@ function getGreeting(): string {
   return 'Buenas noches'
 }
 
+function openCommandPalette() {
+  // Simulate Cmd+K to trigger the keyboard shortcut handler
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true, ctrlKey: true, bubbles: true }))
+}
+
 export function TopBar() {
   const currentPage = useUIStore((s) => s.currentPage)
   const config = pageConfig[currentPage]
 
   return (
     <header
-      className="titlebar-drag flex items-center justify-between glass-subtle flex-shrink-0 border-b border-border"
+      className="titlebar-drag topbar-header glass-subtle"
       style={{ height: 52, paddingLeft: 32, paddingRight: 32 }}
     >
       <motion.div
@@ -34,27 +39,28 @@ export function TopBar() {
         initial={{ opacity: 0, y: -4 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
-        className="flex items-baseline gap-3"
+        className="topbar-title-group"
       >
-        <h1 className="font-display font-semibold text-text-primary tracking-tight" style={{ fontSize: 15 }}>
+        <h1 className="topbar-title" style={{ fontSize: 15 }}>
           {currentPage === 'dashboard' ? getGreeting() : config.title}
         </h1>
-        <div className="w-px h-3.5 bg-border-strong" />
-        <span className="text-text-muted font-medium" style={{ fontSize: 12 }}>
+        <div className="topbar-divider" />
+        <span className="topbar-subtitle" style={{ fontSize: 12 }}>
           {config.subtitle}
         </span>
       </motion.div>
 
-      <div className="flex items-center gap-2 titlebar-no-drag">
+      <div className="topbar-actions titlebar-no-drag">
         <button
-          className="group flex items-center gap-2 rounded-xl glass hover:shadow-sm text-text-muted hover:text-text-secondary transition-all duration-200"
+          onClick={openCommandPalette}
+          className="topbar-search-btn glass"
           style={{ fontSize: 13, padding: '6px 14px' }}
           title="Buscar (⌘K)"
         >
           <Search size={14} strokeWidth={2} />
-          <span className="font-medium">Buscar...</span>
+          <span className="topbar-search-label">Buscar...</span>
           <kbd
-            className="ml-1 bg-surface-alt/60 px-1.5 py-0.5 rounded-md border border-border font-mono text-text-muted"
+            className="topbar-kbd"
             style={{ fontSize: 10, lineHeight: '14px' }}
           >
             ⌘K
@@ -64,11 +70,12 @@ export function TopBar() {
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          className="relative p-2 rounded-xl glass hover:shadow-sm text-text-muted hover:text-primary transition-all duration-200"
+          onClick={openCommandPalette}
+          className="topbar-sparkle-btn glass"
           title="Acciones rápidas"
         >
           <Sparkles size={15} strokeWidth={2} />
-          <div className="absolute top-1.5 right-1.5 w-1.5 h-1.5 rounded-full bg-accent" />
+          <div className="topbar-sparkle-dot" />
         </motion.button>
       </div>
     </header>

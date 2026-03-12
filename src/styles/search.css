@@ -1,0 +1,233 @@
+/* ═══════════════════════════════════════
+   SEARCH
+   CommandPalette
+   ═══════════════════════════════════════ */
+
+/* ===== CommandPalette ===== */
+.cmdpal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 18vh;
+}
+
+.cmdpal-backdrop {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+}
+
+.cmdpal-container {
+  position: relative;
+  width: 100%;
+  max-width: 540px;
+  margin: 0 16px;
+}
+
+.cmdpal-root {
+  background-color: var(--color-surface);
+  border-radius: 16px;
+  box-shadow: var(--shadow-lift);
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+}
+
+/* Input area */
+.cmdpal-input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.cmdpal-search-icon {
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+}
+
+.cmdpal-input {
+  flex: 1;
+  padding: 14px 0;
+  background: transparent;
+  outline: none;
+  font-size: 14px;
+  color: var(--color-text-primary);
+}
+
+.cmdpal-input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.cmdpal-kbd-esc {
+  display: none;
+  align-items: center;
+  gap: 2px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background-color: var(--color-surface-alt);
+  font-size: 10px;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  border: 1px solid var(--color-border);
+}
+
+@media (min-width: 640px) {
+  .cmdpal-kbd-esc {
+    display: inline-flex;
+  }
+}
+
+/* Results list */
+.cmdpal-list {
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.cmdpal-empty {
+  padding: 32px 0;
+  text-align: center;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+/* Group heading */
+.cmdpal-group-heading {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  color: var(--color-text-muted);
+  padding: 0 8px;
+}
+
+/* Items */
+.cmdpal-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 14px;
+  color: var(--color-text-primary);
+  cursor: pointer;
+  transition: color 150ms, background-color 150ms;
+}
+
+.cmdpal-item[data-selected="true"] {
+  background-color: color-mix(in srgb, var(--color-primary) 10%, transparent);
+  color: var(--color-primary);
+}
+
+.cmdpal-item-icon--task {
+  color: var(--color-primary);
+}
+
+.cmdpal-item-icon--project {
+  color: #304B42;
+}
+
+.cmdpal-item-icon--event {
+  color: #6B3A80;
+}
+
+.cmdpal-item-icon--postit {
+  color: var(--color-warning);
+}
+
+.cmdpal-item-icon--tag {
+  color: var(--color-accent-dark);
+}
+
+.cmdpal-item-icon--new-task {
+  color: var(--color-primary);
+}
+
+.cmdpal-item-icon--new-event {
+  color: #6B3A80;
+}
+
+.cmdpal-item-icon--new-project {
+  color: #304B42;
+}
+
+.cmdpal-item-icon--new-postit {
+  color: var(--color-warning);
+}
+
+.cmdpal-item-icon--theme-dark {
+  color: var(--color-accent);
+}
+
+.cmdpal-item-icon--theme-light {
+  color: var(--color-text-secondary);
+}
+
+.cmdpal-item-icon--pomodoro {
+  color: var(--color-danger);
+}
+
+.cmdpal-item-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.cmdpal-item-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+}
+
+.cmdpal-item-desc {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  margin-top: 2px;
+}
+
+.cmdpal-item-kbd {
+  margin-left: auto;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--color-text-muted);
+}
+
+.cmdpal-item-score {
+  font-size: 9px;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+  flex-shrink: 0;
+}
+
+/* Footer */
+.cmdpal-footer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 16px;
+  border-top: 1px solid var(--color-border);
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+
+.cmdpal-footer-hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cmdpal-footer-kbd {
+  padding: 2px 4px;
+  border-radius: 4px;
+  background-color: var(--color-surface-alt);
+  font-family: var(--font-mono);
+  border: 1px solid var(--color-border);
+}

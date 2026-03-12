@@ -46,26 +46,26 @@ export function PostItBoard() {
   }
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
+    <div className="postitboard-layout">
       {/* Header */}
       <FadeIn>
-        <div className="flex items-center justify-between" style={{ padding: '20px 28px 16px' }}>
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-postit-cyan/30 to-postit-lime/30 flex items-center justify-center">
-              <StickyNote size={16} className="text-text-secondary" />
+        <div className="postitboard-header" style={{ padding: '20px 28px 16px' }}>
+          <div className="postitboard-header-left">
+            <div className="postitboard-icon-wrap">
+              <StickyNote size={16} className="postitboard-icon" />
             </div>
             <div>
-              <h1 className="text-lg font-display font-bold text-text-primary tracking-tight">Post-its</h1>
-              <p className="text-[11px] text-text-muted">{postIts.length} notas</p>
+              <h1 className="postitboard-title">Post-its</h1>
+              <p className="postitboard-subtitle">{postIts.length} notas</p>
             </div>
           </div>
 
-          <div className="relative">
+          <div className="postitboard-add-wrap">
             <motion.button
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.93 }}
               onClick={() => setShowColorPicker(!showColorPicker)}
-              className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-primary-hover text-white flex items-center justify-center shadow-sm"
+              className="postitboard-add-btn"
             >
               <Plus size={18} />
             </motion.button>
@@ -73,22 +73,22 @@ export function PostItBoard() {
             <AnimatePresence>
               {showColorPicker && (
                 <>
-                  <div className="fixed inset-0 z-40" onClick={() => setShowColorPicker(false)} />
+                  <div className="postitboard-color-overlay" onClick={() => setShowColorPicker(false)} />
                   <motion.div
                     initial={{ opacity: 0, scale: 0.9, y: -4 }}
                     animate={{ opacity: 1, scale: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.9, y: -4 }}
-                    className="absolute right-0 top-full mt-2 z-50 glass-strong rounded-xl shadow-lg p-3"
+                    className="postitboard-color-picker glass-strong"
                   >
-                    <p className="text-[11px] text-text-muted mb-2 font-medium">Color del post-it</p>
-                    <div className="flex gap-2">
+                    <p className="postitboard-color-label">Color del post-it</p>
+                    <div className="postitboard-color-options">
                       {colors.map((c) => (
                         <motion.button
                           key={c.name}
                           whileHover={{ scale: 1.15 }}
                           whileTap={{ scale: 0.9 }}
                           onClick={() => handleCreate(c.value)}
-                          className="w-7 h-7 rounded-lg shadow-sm border border-black/5 transition-shadow hover:shadow-md"
+                          className="postitboard-color-btn"
                           style={{ backgroundColor: c.value }}
                           title={c.name}
                         />
@@ -103,10 +103,10 @@ export function PostItBoard() {
       </FadeIn>
 
       {/* Board area */}
-      <div className="flex-1 rounded-2xl glass relative overflow-hidden" style={{ margin: '0 28px 24px' }}>
+      <div className="postitboard-canvas glass" style={{ margin: '0 28px 24px' }}>
         {/* Cork board texture */}
         <div
-          className="absolute inset-0 opacity-[0.03] pointer-events-none"
+          className="postitboard-texture"
           style={{
             backgroundImage: `radial-gradient(circle, var(--color-text-muted) 1px, transparent 1px)`,
             backgroundSize: '20px 20px',
@@ -118,11 +118,11 @@ export function PostItBoard() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
-            className="absolute inset-0 flex flex-col items-center justify-center text-center"
+            className="postitboard-empty"
           >
-            <StickyNote size={40} className="text-text-muted/30 mb-3" />
-            <p className="text-[14px] text-text-muted">
-              Creá tu primer post-it con el botón <span className="text-primary font-medium">+</span>
+            <StickyNote size={40} className="postitboard-empty-icon" />
+            <p className="postitboard-empty-text">
+              Creá tu primer post-it con el botón <span className="postitboard-empty-highlight">+</span>
             </p>
           </motion.div>
         )}

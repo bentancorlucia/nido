@@ -14,7 +14,7 @@ export function KanbanPage() {
   }, [])
 
   return (
-    <div className="h-full">
+    <div className="kanban-page">
       <KanbanBoard onCardClick={(task) => setSelectedTask(task)} />
 
       <AnimatePresence>

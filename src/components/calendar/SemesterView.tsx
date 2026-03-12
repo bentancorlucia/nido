@@ -21,13 +21,14 @@ import { staggerContainer, staggerItem } from '../../lib/animations'
 import { MiniDayCell } from './DayCell'
 
 const WEEKDAYS_SHORT = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
+const FIXED_WEEKS = 6
 
 interface SemesterViewProps {
   onClickDay: (date: Date) => void
 }
 
 export function SemesterView({ onClickDay }: SemesterViewProps) {
-  const { currentDate, setCurrentDate, getEventsForDate, events } = useCalendarStore()
+  const { currentDate, setCurrentDate, getEventsForDate } = useCalendarStore()
   const { projects } = useProjectStore()
   const { tasks } = useTaskStore()
 
@@ -53,6 +54,21 @@ export function SemesterView({ onClickDay }: SemesterViewProps) {
     [projects]
   )
 
+  // Compute project task counts for proportional bar widths
+  const projectTaskInfo = useMemo(() => {
+    const semStart = format(timelineStart, 'yyyy-MM-dd')
+    const semEnd = format(timelineEnd, 'yyyy-MM-dd')
+    return activeProjects.slice(0, 8).map((project) => {
+      const projectTasks = tasks.filter((t) => t.project_id === project.id)
+      const total = projectTasks.length
+      const completed = projectTasks.filter((t) => t.is_completed === 1).length
+      const hasDatesInRange = projectTasks.some(
+        (t) => t.due_date && t.due_date >= semStart && t.due_date <= semEnd
+      )
+      return { project, total, completed, hasDatesInRange }
+    })
+  }, [activeProjects, tasks, timelineStart, timelineEnd])
+
   // Deadlines (tasks with due_date in semester range)
   const deadlines = useMemo(() => {
     const start = format(timelineStart, 'yyyy-MM-dd')
@@ -68,6 +84,11 @@ export function SemesterView({ onClickDay }: SemesterViewProps) {
     return (days / totalDays) * 100
   }
 
+  // Today marker position
+  const todayStr = format(new Date(), 'yyyy-MM-dd')
+  const todayPercent = dayToPercent(todayStr)
+  const showTodayMarker = todayPercent >= 0 && todayPercent <= 100
+
   const navigateSemester = (delta: number) => {
     const newStart = semesterStart + delta * semesterMonths
     if (newStart >= 0 && newStart < 12) {
@@ -77,33 +98,31 @@ export function SemesterView({ onClickDay }: SemesterViewProps) {
     }
   }
 
-  const semesterLabel = `${format(months[0], 'MMMM', { locale: es })} - ${format(months[months.length - 1], 'MMMM yyyy', { locale: es })}`
+  const semesterLabel = `${format(months[0], 'MMMM', { locale: es })} — ${format(months[months.length - 1], 'MMMM yyyy', { locale: es })}`
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="semester-root">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4">
-        <h2 className="text-lg font-display font-bold text-text-primary capitalize tracking-tight">
+      <div className="semester-header">
+        <h2 className="semester-title">
           {semesterLabel}
         </h2>
-        <div className="flex items-center gap-2">
+        <div className="semester-controls">
           <select
             value={semesterStart}
             onChange={(e) => setSemesterStart(Number(e.target.value))}
-            className="text-xs rounded-lg px-2 py-1.5 border border-border bg-surface-solid/50
-                       text-text-primary focus:border-border-focus outline-none"
+            className="semester-select"
           >
-            <option value={2}>Mar - Jul</option>
-            <option value={7}>Ago - Dic</option>
-            <option value={0}>Ene - May</option>
+            <option value={2}>Mar — Jul</option>
+            <option value={7}>Ago — Dic</option>
+            <option value={0}>Ene — May</option>
           </select>
-          <div className="flex items-center gap-1">
+          <div className="semester-nav">
             <motion.button
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={() => navigateSemester(-1)}
-              className="p-2 rounded-xl text-text-secondary hover:text-text-primary
-                         hover:bg-surface-alt/60 transition-colors"
+              className="cal-nav-btn"
             >
               <ChevronLeft size={18} />
             </motion.button>
@@ -111,8 +130,7 @@ export function SemesterView({ onClickDay }: SemesterViewProps) {
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.9 }}
               onClick={() => navigateSemester(1)}
-              className="p-2 rounded-xl text-text-secondary hover:text-text-primary
-                         hover:bg-surface-alt/60 transition-colors"
+              className="cal-nav-btn"
             >
               <ChevronRight size={18} />
             </motion.button>
@@ -121,65 +139,88 @@ export function SemesterView({ onClickDay }: SemesterViewProps) {
       </div>
 
       {/* Timeline */}
-      <div className="px-6 pb-4">
-        <div className="glass rounded-xl p-4 overflow-x-auto">
-          {/* Month labels */}
-          <div className="flex border-b border-border pb-2 mb-3">
-            {months.map((m) => {
+      <div className="semester-timeline">
+        <div className="glass semester-timeline-inner">
+          {/* Month columns */}
+          <div className="semester-month-labels">
+            {months.map((m, idx) => {
               const mStart = differenceInDays(m, timelineStart)
               const mEnd = differenceInDays(endOfMonth(m), timelineStart)
-              const left = (mStart / totalDays) * 100
               const width = ((mEnd - mStart + 1) / totalDays) * 100
               return (
                 <div
                   key={m.toISOString()}
-                  className="text-[11px] font-semibold text-text-secondary capitalize"
+                  className={`semester-month-label ${idx < months.length - 1 ? 'semester-month-label-border' : ''}`}
                   style={{ width: `${width}%`, minWidth: 0 }}
                 >
-                  {format(m, 'MMMM', { locale: es })}
+                  {format(m, 'MMM', { locale: es })}
                 </div>
               )
             })}
           </div>
 
           {/* Project bars */}
-          <div className="relative min-h-[80px] space-y-2">
-            {activeProjects.length === 0 && (
-              <p className="text-xs text-text-muted py-4 text-center">
+          <div className="semester-bars">
+            {projectTaskInfo.length === 0 && (
+              <p className="semester-bars-empty">
                 No hay proyectos activos para mostrar
               </p>
             )}
-            {activeProjects.slice(0, 8).map((project) => (
-              <div key={project.id} className="relative h-7 flex items-center">
-                <div
-                  className="h-5 rounded-full flex items-center px-2 text-[10px] font-medium text-white truncate"
-                  style={{
-                    backgroundColor: project.color || 'var(--color-primary)',
-                    width: `${60 + Math.random() * 30}%`,
-                    opacity: 0.8,
-                  }}
-                >
-                  {project.name}
-                </div>
-              </div>
-            ))}
-
-            {/* Deadline diamonds */}
-            {deadlines.map((task) => {
-              if (!task.due_date) return null
-              const left = dayToPercent(task.due_date)
-              if (left < 0 || left > 100) return null
+            {projectTaskInfo.map(({ project, total, completed }) => {
+              // Deterministic width: base 40% + up to 55% based on task count
+              const maxTasks = Math.max(...projectTaskInfo.map((p) => p.total), 1)
+              const barWidth = 40 + (total / maxTasks) * 55
+              const completionRatio = total > 0 ? completed / total : 0
               return (
-                <div
-                  key={task.id}
-                  className="absolute -top-1"
-                  style={{ left: `${left}%` }}
-                  title={`${task.title} — ${task.due_date}`}
-                >
-                  <Diamond size={10} className="text-warning fill-warning" />
+                <div key={project.id} className="semester-project-row">
+                  <div
+                    className="semester-project-bar"
+                    style={{
+                      backgroundColor: project.color || 'var(--color-primary)',
+                      width: `${barWidth}%`,
+                    }}
+                  >
+                    <span className="semester-project-bar-name">{project.name}</span>
+                    {total > 0 && (
+                      <span className="semester-project-bar-progress">
+                        {Math.round(completionRatio * 100)}%
+                      </span>
+                    )}
+                  </div>
                 </div>
               )
             })}
+
+            {/* Today marker */}
+            {showTodayMarker && (
+              <div
+                className="semester-today-marker"
+                style={{ left: `${todayPercent}%` }}
+              >
+                <div className="semester-today-line" />
+              </div>
+            )}
+
+            {/* Deadline diamonds */}
+            {deadlines.length > 0 && (
+              <div className="semester-deadlines-row">
+                {deadlines.map((task) => {
+                  if (!task.due_date) return null
+                  const left = dayToPercent(task.due_date)
+                  if (left < 0 || left > 100) return null
+                  return (
+                    <div
+                      key={task.id}
+                      className="semester-deadline"
+                      style={{ left: `${left}%` }}
+                      title={`${task.title} — ${task.due_date}`}
+                    >
+                      <Diamond size={10} style={{ color: 'var(--color-warning)', fill: 'var(--color-warning)' }} />
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -189,17 +230,23 @@ export function SemesterView({ onClickDay }: SemesterViewProps) {
         variants={staggerContainer}
         initial="hidden"
         animate="visible"
-        className="flex-1 grid grid-cols-5 gap-3 px-6 pb-6 overflow-y-auto"
+        className="semester-mini-grid"
       >
-        {months.map((monthDate) => (
-          <motion.div key={monthDate.getMonth()} variants={staggerItem}>
-            <SemesterMiniMonth
-              monthDate={monthDate}
-              getEventsForDate={getEventsForDate}
-              onClickDay={onClickDay}
-            />
-          </motion.div>
-        ))}
+        {months.map((monthDate) => {
+          const isCurrentMonth =
+            monthDate.getMonth() === new Date().getMonth() &&
+            monthDate.getFullYear() === new Date().getFullYear()
+          return (
+            <motion.div key={monthDate.getMonth()} variants={staggerItem}>
+              <SemesterMiniMonth
+                monthDate={monthDate}
+                isCurrent={isCurrentMonth}
+                getEventsForDate={getEventsForDate}
+                onClickDay={onClickDay}
+              />
+            </motion.div>
+          )
+        })}
       </motion.div>
     </div>
   )
@@ -207,10 +254,12 @@ export function SemesterView({ onClickDay }: SemesterViewProps) {
 
 function SemesterMiniMonth({
   monthDate,
+  isCurrent,
   getEventsForDate,
   onClickDay,
 }: {
   monthDate: Date
+  isCurrent: boolean
   getEventsForDate: (dateStr: string) => unknown[]
   onClickDay: (date: Date) => void
 }) {
@@ -227,25 +276,36 @@ function SemesterMiniMonth({
       }
       rows.push(week)
     }
+    // Pad to FIXED_WEEKS rows for uniform height
+    while (rows.length < FIXED_WEEKS) {
+      const lastDay = rows[rows.length - 1][6]
+      const week: Date[] = []
+      let d = addDays(lastDay, 1)
+      for (let i = 0; i < 7; i++) {
+        week.push(d)
+        d = addDays(d, 1)
+      }
+      rows.push(week)
+    }
     return rows
   }, [monthDate])
 
   return (
-    <div className="glass rounded-xl p-3">
-      <h3 className="text-[12px] font-display font-semibold text-text-primary mb-2 capitalize">
+    <div className={`glass semester-mini-month ${isCurrent ? 'semester-mini-month-current' : ''}`}>
+      <h3 className={`semester-mini-month-title ${isCurrent ? 'semester-mini-month-title-current' : ''}`}>
         {format(monthDate, 'MMMM', { locale: es })}
       </h3>
 
-      <div className="grid grid-cols-7 mb-1">
+      <div className="semester-mini-weekdays">
         {WEEKDAYS_SHORT.map((d) => (
-          <span key={d} className="text-center text-[9px] text-text-muted font-medium">
+          <span key={d} className="semester-mini-weekday">
             {d}
           </span>
         ))}
       </div>
 
       {weeks.map((week, wi) => (
-        <div key={wi} className="grid grid-cols-7">
+        <div key={wi} className="semester-mini-week">
           {week.map((day) => {
             const dateStr = format(day, 'yyyy-MM-dd')
             const eventCount = getEventsForDate(dateStr).length

@@ -38,40 +38,6 @@ const bottomNav: NavItemType[] = [
   { id: 'settings', label: 'Configuración', icon: Settings },
 ]
 
-function NidoLogo({ collapsed }: { collapsed: boolean }) {
-  return (
-    <div className="flex items-center" style={{ gap: 12 }}>
-      <div className="relative flex-shrink-0" style={{ width: 36, height: 36 }}>
-        <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-primary via-[#20C4DB] to-[#38CFEA] opacity-25 blur-lg scale-110" />
-        <div
-          className="relative rounded-xl bg-gradient-to-br from-primary via-[#15B5CF] to-[#38CFEA] flex items-center justify-center"
-          style={{ width: 36, height: 36, boxShadow: '0 2px 10px rgba(1, 167, 194, 0.35)' }}
-        >
-          <span className="text-white font-display font-bold" style={{ fontSize: 15 }}>N</span>
-        </div>
-      </div>
-      <AnimatePresence>
-        {!collapsed && (
-          <motion.div
-            initial={{ opacity: 0, x: -6 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -6 }}
-            transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
-            className="flex flex-col"
-          >
-            <span className="text-sidebar-text font-display font-bold leading-none" style={{ fontSize: 17 }}>
-              Nido
-            </span>
-            <span className="text-sidebar-text/25 font-semibold uppercase" style={{ fontSize: 9.5, letterSpacing: '0.14em', marginTop: 4 }}>
-              Organizer
-            </span>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  )
-}
-
 function SidebarNavItem({
   item,
   isActive,
@@ -89,24 +55,21 @@ function SidebarNavItem({
     return (
       <button
         onClick={onClick}
-        className={`
-          group relative flex items-center justify-center mx-auto rounded-xl transition-all duration-200
-          ${isActive ? 'text-white' : 'text-sidebar-text/45 hover:text-sidebar-text/90'}
-        `}
+        className={`sidebar-nav-item-collapsed${isActive ? ' is-active' : ''}`}
         style={{ width: 44, height: 44 }}
         title={item.label}
       >
         {isActive && (
           <motion.div
             layoutId="nav-active-fill"
-            className="absolute inset-0 rounded-xl nav-active-indicator"
+            className="sidebar-nav-active-fill nav-active-indicator"
             transition={{ type: 'spring', stiffness: 400, damping: 28 }}
           />
         )}
         {!isActive && (
-          <div className="absolute inset-0 rounded-xl bg-white/0 group-hover:bg-white/[0.06] transition-colors duration-200" />
+          <div className="sidebar-nav-hover-fill" />
         )}
-        <Icon size={19} strokeWidth={isActive ? 2.2 : 1.7} className="relative z-10" />
+        <Icon size={19} strokeWidth={isActive ? 2.2 : 1.7} className="sidebar-nav-icon-z" />
       </button>
     )
   }
@@ -114,16 +77,13 @@ function SidebarNavItem({
   return (
     <button
       onClick={onClick}
-      className={`
-        group relative w-full flex items-center rounded-lg transition-all duration-200
-        ${isActive ? 'text-sidebar-text' : 'text-sidebar-text/45 hover:text-sidebar-text/85'}
-      `}
+      className={`sidebar-nav-item-expanded${isActive ? ' is-active' : ''}`}
       style={{ padding: '10px 0', gap: 14 }}
     >
       {isActive && (
         <motion.div
           layoutId="nav-accent-bar"
-          className="absolute rounded-r-full bg-primary"
+          className="sidebar-nav-accent-bar"
           style={{
             left: -24,
             top: 8,
@@ -137,9 +97,9 @@ function SidebarNavItem({
       <Icon
         size={19}
         strokeWidth={isActive ? 2.2 : 1.6}
-        className="flex-shrink-0"
+        className="sidebar-nav-icon-shrink"
       />
-      <span style={{ fontSize: 14 }} className={isActive ? 'font-semibold' : 'font-medium'}>
+      <span style={{ fontSize: 14 }} className={isActive ? 'sidebar-nav-label-active' : 'sidebar-nav-label-inactive'}>
         {item.label}
       </span>
     </button>
@@ -171,22 +131,17 @@ export function Sidebar() {
     <motion.aside
       animate={{ width: collapsed ? 72 : 260 }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      className="h-full flex flex-col bg-sidebar-bg select-none overflow-hidden flex-shrink-0 border-r border-white/[0.06]"
+      className="sidebar-root"
     >
       {/* Spacer for macOS traffic lights */}
-      <div className="titlebar-drag flex-shrink-0" style={{ height: 48 }} />
-
-      {/* Logo */}
-      <div className="titlebar-no-drag" style={{ padding: collapsed ? '4px 16px 20px' : '4px 24px 24px' }}>
-        <NidoLogo collapsed={collapsed} />
-      </div>
+      <div className="titlebar-drag sidebar-titlebar-spacer" style={{ height: 48 }} />
 
       {/* Main navigation */}
       <nav
-        className="flex-1 overflow-y-auto titlebar-no-drag flex flex-col"
+        className="sidebar-nav titlebar-no-drag"
         style={{ padding: collapsed ? '0 12px' : '0 24px' }}
       >
-        <div className="space-y-0.5">
+        <div className="sidebar-nav-list">
           {mainNav.map((item) => (
             <SidebarNavItem
               key={item.id}
@@ -203,7 +158,7 @@ export function Sidebar() {
           <div style={{ marginTop: 24, paddingTop: 16, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
             <button
               onClick={toggleSidebarProjects}
-              className="w-full flex items-center text-sidebar-text/30 hover:text-sidebar-text/50 transition-colors font-semibold uppercase"
+              className="sidebar-projects-header"
               style={{ gap: 8, padding: '8px 0', fontSize: 10, letterSpacing: '0.12em' }}
             >
               <motion.div
@@ -221,10 +176,10 @@ export function Sidebar() {
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
                   transition={{ duration: 0.2 }}
-                  className="overflow-hidden"
+                  className="sidebar-projects-collapse"
                 >
                   {rootProjects.length === 0 ? (
-                    <p className="text-sidebar-text/20 italic" style={{ padding: '12px 0', fontSize: 12 }}>
+                    <p className="sidebar-projects-empty" style={{ padding: '12px 0', fontSize: 12 }}>
                       Sin proyectos aún
                     </p>
                   ) : (
@@ -236,17 +191,17 @@ export function Sidebar() {
                             selectProject(project.id)
                             setCurrentPage('projects')
                           }}
-                          className="w-full flex items-center rounded-lg text-sidebar-text/40 hover:text-sidebar-text/75 transition-all text-left"
+                          className="sidebar-project-btn"
                           style={{ gap: 10, padding: '7px 0', fontSize: 12.5 }}
                         >
                           <Folder size={13} style={{ color: project.color ?? undefined }} />
-                          <span className="font-medium truncate">{project.name}</span>
+                          <span className="sidebar-project-name">{project.name}</span>
                         </button>
                       ))}
                       {rootProjects.length > 8 && (
                         <button
                           onClick={() => setCurrentPage('projects')}
-                          className="w-full text-sidebar-text/25 hover:text-sidebar-text/45 transition-colors"
+                          className="sidebar-projects-more"
                           style={{ padding: '5px 0', fontSize: 10 }}
                         >
                           +{rootProjects.length - 8} más...
@@ -261,7 +216,7 @@ export function Sidebar() {
         )}
 
         {/* Spacer */}
-        <div className="flex-1" style={{ minHeight: 20 }} />
+        <div className="sidebar-spacer" style={{ minHeight: 20 }} />
       </nav>
 
       {/* Bottom section */}
@@ -272,7 +227,7 @@ export function Sidebar() {
           borderTop: '1px solid rgba(255,255,255,0.06)',
         }}
       >
-        <div className="space-y-0.5">
+        <div className="sidebar-nav-list">
           {bottomNav.map((item) => (
             <SidebarNavItem
               key={item.id}
@@ -289,18 +244,14 @@ export function Sidebar() {
         {/* Theme toggle */}
         <button
           onClick={toggleTheme}
-          className={`
-            group relative w-full flex items-center transition-all duration-200
-            text-sidebar-text/40 hover:text-sidebar-text/80
-            ${collapsed ? 'justify-center mx-auto rounded-xl' : 'rounded-lg'}
-          `}
+          className={`sidebar-bottom-btn${collapsed ? ' is-collapsed' : ''}`}
           style={collapsed ? { width: 44, height: 44 } : { gap: 14, paddingTop: 8, paddingBottom: 8 }}
           title={theme === 'light' ? 'Modo oscuro' : 'Modo claro'}
         >
           {collapsed && (
-            <div className="absolute inset-0 rounded-xl bg-white/0 group-hover:bg-white/[0.06] transition-colors duration-200" />
+            <div className="sidebar-bottom-hover-fill" />
           )}
-          <span className="relative z-10 flex items-center" style={collapsed ? {} : { gap: 14 }}>
+          <span className="sidebar-bottom-inner" style={collapsed ? {} : { gap: 14 }}>
             <motion.div
               key={theme}
               initial={{ rotate: -90, opacity: 0, scale: 0.5 }}
@@ -310,7 +261,7 @@ export function Sidebar() {
               {theme === 'light' ? <Moon size={19} strokeWidth={1.6} /> : <Sun size={19} strokeWidth={1.6} />}
             </motion.div>
             {!collapsed && (
-              <span className="font-medium" style={{ fontSize: 14 }}>
+              <span className="sidebar-bottom-label" style={{ fontSize: 14 }}>
                 {theme === 'light' ? 'Modo oscuro' : 'Modo claro'}
               </span>
             )}
@@ -320,21 +271,17 @@ export function Sidebar() {
         {/* Collapse toggle */}
         <button
           onClick={toggleSidebar}
-          className={`
-            group relative w-full flex items-center transition-all duration-200
-            text-sidebar-text/40 hover:text-sidebar-text/80
-            ${collapsed ? 'justify-center mx-auto rounded-xl' : 'rounded-lg'}
-          `}
+          className={`sidebar-bottom-btn${collapsed ? ' is-collapsed' : ''}`}
           style={collapsed ? { width: 44, height: 44 } : { gap: 14, paddingTop: 8, paddingBottom: 8 }}
           title={collapsed ? 'Expandir' : 'Colapsar'}
         >
           {collapsed && (
-            <div className="absolute inset-0 rounded-xl bg-white/0 group-hover:bg-white/[0.06] transition-colors duration-200" />
+            <div className="sidebar-bottom-hover-fill" />
           )}
-          <span className="relative z-10 flex items-center" style={collapsed ? {} : { gap: 14 }}>
+          <span className="sidebar-bottom-inner" style={collapsed ? {} : { gap: 14 }}>
             {collapsed ? <PanelLeft size={19} strokeWidth={1.6} /> : <PanelLeftClose size={19} strokeWidth={1.6} />}
             {!collapsed && (
-              <span className="font-medium" style={{ fontSize: 14 }}>Colapsar</span>
+              <span className="sidebar-bottom-label" style={{ fontSize: 14 }}>Colapsar</span>
             )}
           </span>
         </button>

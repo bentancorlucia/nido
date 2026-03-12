@@ -39,36 +39,36 @@ function RecurrenceManager() {
 
   return (
     <div>
-      <div className="flex items-center gap-2.5 mb-5">
-        <Repeat size={16} className="text-primary" />
-        <h2 className="text-[14px] font-display font-semibold text-text-primary">Tareas recurrentes</h2>
+      <div className="recurrence-header">
+        <Repeat size={16} className="recurrence-icon" />
+        <h2 className="recurrence-title">Tareas recurrentes</h2>
       </div>
 
       {loading ? (
-        <p className="text-[13px] text-text-muted">Cargando...</p>
+        <p className="recurrence-msg">Cargando...</p>
       ) : recurringTasks.length === 0 ? (
-        <p className="text-[13px] text-text-muted">No hay tareas recurrentes activas.</p>
+        <p className="recurrence-msg">No hay tareas recurrentes activas.</p>
       ) : (
-        <div className="space-y-2">
+        <div className="recurrence-list">
           {recurringTasks.map((task) => (
             <motion.div
               key={task.id}
               initial={{ opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-3 py-2.5 px-3 rounded-xl bg-surface-alt/25 hover:bg-surface-alt/40 transition-colors group"
+              className="recurrence-item"
             >
-              <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-medium text-text-primary truncate">{task.title}</p>
-                <p className="text-[11px] text-primary mt-0.5">
+              <div className="recurrence-item-info">
+                <p className="recurrence-item-title">{task.title}</p>
+                <p className="recurrence-item-rule">
                   {recurrenceLabel(task.recurrence_rule)}
                   {task.recurrence_end && (
-                    <span className="text-text-muted"> — hasta {new Date(task.recurrence_end).toLocaleDateString('es-AR')}</span>
+                    <span className="recurrence-item-end"> — hasta {new Date(task.recurrence_end).toLocaleDateString('es-AR')}</span>
                   )}
                 </p>
               </div>
               <button
                 onClick={() => toggleRecurrence(task)}
-                className="p-1.5 rounded-lg text-text-muted hover:text-danger hover:bg-danger-light/40 transition-colors opacity-0 group-hover:opacity-100"
+                className="recurrence-delete-btn"
                 title="Desactivar recurrencia"
               >
                 <Trash2 size={13} />
@@ -93,30 +93,30 @@ export function SettingsPage() {
   }, [])
 
   return (
-    <div className="max-w-2xl mx-auto overflow-y-auto h-full" style={{ padding: '24px 32px' }}>
+    <div className="settings-page" style={{ padding: '24px 32px' }}>
       <FadeIn>
-        <h1 className="text-xl font-display font-bold text-text-primary mb-6 tracking-tight">Configuración</h1>
+        <h1 className="settings-title">Configuración</h1>
       </FadeIn>
 
       {/* Appearance */}
       <FadeIn delay={0.05}>
-        <section className="glass rounded-2xl mb-5" style={{ padding: '20px 24px' }}>
-          <div className="flex items-center gap-2.5 mb-4">
-            <Palette size={15} className="text-primary" />
-            <h2 className="text-[14px] font-display font-semibold text-text-primary">Apariencia</h2>
+        <section className="glass settings-section" style={{ padding: '20px 24px' }}>
+          <div className="settings-section-header">
+            <Palette size={15} className="settings-section-icon" />
+            <h2 className="settings-section-title">Apariencia</h2>
           </div>
 
-          <div className="flex items-center justify-between py-1">
+          <div className="settings-row">
             <div>
-              <p className="text-[13.5px] font-medium text-text-primary">Tema</p>
-              <p className="text-[12px] text-text-muted mt-0.5">
+              <p className="settings-row-label">Tema</p>
+              <p className="settings-row-desc">
                 {theme === 'light' ? 'Modo claro activo' : 'Modo oscuro activo'}
               </p>
             </div>
-            <div className="flex items-center gap-2.5">
-              <Sun size={14} className="text-text-muted" />
+            <div className="settings-row-control">
+              <Sun size={14} className="settings-row-control-icon" />
               <Toggle checked={theme === 'dark'} onChange={toggleTheme} />
-              <Moon size={14} className="text-text-muted" />
+              <Moon size={14} className="settings-row-control-icon" />
             </div>
           </div>
         </section>
@@ -124,63 +124,63 @@ export function SettingsPage() {
 
       {/* Pomodoro */}
       <FadeIn delay={0.1}>
-        <section className="glass rounded-2xl mb-5" style={{ padding: '20px 24px' }}>
-          <div className="flex items-center gap-2.5 mb-4">
-            <Timer size={15} className="text-primary" />
-            <h2 className="text-[14px] font-display font-semibold text-text-primary">Pomodoro</h2>
+        <section className="glass settings-section" style={{ padding: '20px 24px' }}>
+          <div className="settings-section-header">
+            <Timer size={15} className="settings-section-icon" />
+            <h2 className="settings-section-title">Pomodoro</h2>
           </div>
 
-          <div className="grid grid-cols-3 gap-4 mb-4">
+          <div className="settings-pomo-grid">
             <div>
-              <label className="text-[12px] text-text-muted block mb-1.5">Trabajo (min)</label>
+              <label className="settings-pomo-label">Trabajo (min)</label>
               <input
                 type="number"
                 value={workMinutes}
                 onChange={(e) => updateSetting('pomodoro_work_minutes', parseInt(e.target.value) || 25)}
-                className="w-full px-3 py-2 text-[13px] rounded-xl bg-surface-alt/30 text-text-primary outline-none font-mono border border-border focus:border-primary transition-colors"
+                className="settings-pomo-input"
                 min={1}
                 max={120}
               />
             </div>
             <div>
-              <label className="text-[12px] text-text-muted block mb-1.5">Descanso (min)</label>
+              <label className="settings-pomo-label">Descanso (min)</label>
               <input
                 type="number"
                 value={breakMinutes}
                 onChange={(e) => updateSetting('pomodoro_break_minutes', parseInt(e.target.value) || 5)}
-                className="w-full px-3 py-2 text-[13px] rounded-xl bg-surface-alt/30 text-text-primary outline-none font-mono border border-border focus:border-primary transition-colors"
+                className="settings-pomo-input"
                 min={1}
                 max={60}
               />
             </div>
             <div>
-              <label className="text-[12px] text-text-muted block mb-1.5">Descanso largo (min)</label>
+              <label className="settings-pomo-label">Descanso largo (min)</label>
               <input
                 type="number"
                 value={longBreakMinutes}
                 onChange={(e) => updateSetting('pomodoro_long_break_minutes', parseInt(e.target.value) || 15)}
-                className="w-full px-3 py-2 text-[13px] rounded-xl bg-surface-alt/30 text-text-primary outline-none font-mono border border-border focus:border-primary transition-colors"
+                className="settings-pomo-input"
                 min={1}
                 max={60}
               />
             </div>
           </div>
 
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
+          <div className="settings-toggles">
+            <div className="settings-row">
               <div>
-                <p className="text-[13.5px] font-medium text-text-primary">Auto-iniciar siguiente</p>
-                <p className="text-[12px] text-text-muted mt-0.5">Continuar automáticamente después de cada fase</p>
+                <p className="settings-row-label">Auto-iniciar siguiente</p>
+                <p className="settings-row-desc">Continuar automáticamente después de cada fase</p>
               </div>
               <Toggle
                 checked={autoStart}
                 onChange={(v) => updateSetting('pomodoro_auto_start', v)}
               />
             </div>
-            <div className="flex items-center justify-between">
+            <div className="settings-row">
               <div>
-                <p className="text-[13.5px] font-medium text-text-primary">Sonido</p>
-                <p className="text-[12px] text-text-muted mt-0.5">Notificación sonora al completar sesión</p>
+                <p className="settings-row-label">Sonido</p>
+                <p className="settings-row-desc">Notificación sonora al completar sesión</p>
               </div>
               <Toggle
                 checked={soundEnabled}
@@ -193,14 +193,14 @@ export function SettingsPage() {
 
       {/* Tags */}
       <FadeIn delay={0.15}>
-        <section className="glass rounded-2xl mb-5" style={{ padding: '20px 24px' }}>
+        <section className="glass settings-section" style={{ padding: '20px 24px' }}>
           <TagManager />
         </section>
       </FadeIn>
 
       {/* Recurring Tasks */}
       <FadeIn delay={0.2}>
-        <section className="glass rounded-2xl mb-5" style={{ padding: '20px 24px' }}>
+        <section className="glass settings-section" style={{ padding: '20px 24px' }}>
           <RecurrenceManager />
         </section>
       </FadeIn>

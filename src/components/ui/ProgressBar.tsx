@@ -7,29 +7,23 @@ interface ProgressBarProps {
   className?: string
 }
 
-const sizeStyles = {
-  sm: 'h-1',
-  md: 'h-2',
-  lg: 'h-3',
-}
-
 export function ProgressBar({ value, size = 'md', showLabel = false, className = '' }: ProgressBarProps) {
   const clampedValue = Math.min(100, Math.max(0, value))
 
   return (
-    <div className={`flex items-center gap-3 ${className}`}>
-      <div className={`flex-1 rounded-full bg-surface-alt/40 overflow-hidden ${sizeStyles[size]} shadow-inner`}>
+    <div className={`progress-bar ${className}`}>
+      <div className={`progress-bar__track progress-bar__track--${size}`}>
         <motion.div
           initial={{ width: 0 }}
           animate={{ width: `${clampedValue}%` }}
           transition={{ type: 'spring', stiffness: 80, damping: 18, delay: 0.1 }}
-          className="h-full rounded-full bg-gradient-to-r from-primary via-[#38CFEA] to-accent relative overflow-hidden"
+          className="progress-bar__fill"
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 animate-shimmer" />
+          <div className="progress-bar__shimmer" />
         </motion.div>
       </div>
       {showLabel && (
-        <span className="text-[11px] font-semibold text-text-secondary font-mono min-w-[3ch] text-right tabular-nums">
+        <span className="progress-bar__label">
           {Math.round(clampedValue)}%
         </span>
       )}

@@ -10,14 +10,6 @@ interface BadgeProps {
   animate?: boolean
 }
 
-const variantStyles: Record<BadgeVariant, string> = {
-  default: 'bg-surface-alt/50 text-text-secondary border border-border',
-  success: 'bg-success-bg text-accent-dark border border-accent/12',
-  danger: 'bg-danger-light text-danger border border-danger/8',
-  warning: 'bg-warning-light text-warning border border-warning/8',
-  info: 'bg-primary-light text-primary border border-primary/8',
-}
-
 export function Badge({ children, variant = 'default', className = '', animate = false }: BadgeProps) {
   const Component = animate ? motion.span : 'span'
   const animationProps = animate
@@ -30,12 +22,7 @@ export function Badge({ children, variant = 'default', className = '', animate =
 
   return (
     <Component
-      className={`
-        inline-flex items-center px-2.5 py-0.5 text-[11px] font-semibold tracking-wide
-        rounded-full whitespace-nowrap leading-relaxed
-        ${variantStyles[variant]}
-        ${className}
-      `}
+      className={`badge badge--${variant} ${className}`}
       {...animationProps}
     >
       {children}

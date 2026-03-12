@@ -63,20 +63,16 @@ export function PomodoroFull() {
     ? availableTasks.filter((t) => t.title.toLowerCase().includes(taskSearch.toLowerCase()))
     : availableTasks
 
-  const phaseColors = {
-    work: 'from-primary/10 to-transparent',
-    break: 'from-accent/10 to-transparent',
-    long_break: 'from-accent/15 to-transparent',
-  }
+  const bgClass = phase === 'work' ? 'pomo-bg-gradient--work' : phase === 'break' ? 'pomo-bg-gradient--break' : 'pomo-bg-gradient--long-break'
 
   return (
-    <div className="h-full overflow-y-auto">
-      <div className={`absolute inset-0 bg-gradient-radial ${phaseColors[phase]} opacity-60 pointer-events-none`} />
+    <div className="pomo-page">
+      <div className={`pomo-bg-gradient ${bgClass}`} />
 
-      <div className="relative max-w-3xl mx-auto" style={{ padding: '24px 32px' }}>
+      <div className="pomo-container" style={{ padding: '24px 32px' }}>
         <FadeIn>
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-xl font-display font-bold text-text-primary tracking-tight">Pomodoro</h1>
+          <div className="pomo-header">
+            <h1 className="pomo-title">Pomodoro</h1>
             <button
               onClick={() => setShowSettings(!showSettings)}
               className="icon-button"
@@ -95,54 +91,54 @@ export function PomodoroFull() {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="overflow-hidden mb-6"
+              className="pomo-settings"
             >
-              <div className="glass rounded-2xl p-4 space-y-3">
+              <div className="glass pomo-settings-inner">
                 <p className="section-label">Configuración</p>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="pomo-settings-grid">
                   <div>
-                    <label className="text-[11px] text-text-muted block mb-1">Trabajo (min)</label>
+                    <label className="pomo-settings-label">Trabajo (min)</label>
                     <input
                       type="number"
                       value={workMinutes}
                       onChange={(e) => updateSetting('pomodoro_work_minutes', parseInt(e.target.value) || 25)}
-                      className="w-full px-3 py-1.5 text-[13px] rounded-lg glass text-text-primary outline-none font-mono"
+                      className="glass pomo-settings-input"
                       min={1}
                       max={120}
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] text-text-muted block mb-1">Descanso (min)</label>
+                    <label className="pomo-settings-label">Descanso (min)</label>
                     <input
                       type="number"
                       value={breakMinutes}
                       onChange={(e) => updateSetting('pomodoro_break_minutes', parseInt(e.target.value) || 5)}
-                      className="w-full px-3 py-1.5 text-[13px] rounded-lg glass text-text-primary outline-none font-mono"
+                      className="glass pomo-settings-input"
                       min={1}
                       max={60}
                     />
                   </div>
                   <div>
-                    <label className="text-[11px] text-text-muted block mb-1">Descanso largo (min)</label>
+                    <label className="pomo-settings-label">Descanso largo (min)</label>
                     <input
                       type="number"
                       value={longBreakMinutes}
                       onChange={(e) => updateSetting('pomodoro_long_break_minutes', parseInt(e.target.value) || 15)}
-                      className="w-full px-3 py-1.5 text-[13px] rounded-lg glass text-text-primary outline-none font-mono"
+                      className="glass pomo-settings-input"
                       min={1}
                       max={60}
                     />
                   </div>
                 </div>
-                <div className="flex items-center gap-4 pt-1">
-                  <label className="inline-flex items-center gap-2 cursor-pointer">
+                <div className="pomo-settings-row">
+                  <label className="pomo-settings-checkbox-label">
                     <input
                       type="checkbox"
                       checked={autoStart}
                       onChange={(e) => updateSetting('pomodoro_auto_start', e.target.checked)}
-                      className="accent-primary"
+                      className="pomo-settings-checkbox"
                     />
-                    <span className="text-[12px] text-text-secondary">Auto-iniciar siguiente</span>
+                    <span className="pomo-settings-checkbox-text">Auto-iniciar siguiente</span>
                   </label>
                   <button
                     onClick={() => updateSetting('pomodoro_sound', !soundEnabled)}
@@ -157,18 +153,18 @@ export function PomodoroFull() {
           )}
         </AnimatePresence>
 
-        <div className="flex gap-8 items-start">
+        <div className="pomo-main">
           {/* Timer section */}
-          <FadeIn delay={0.05} className="flex-1 flex flex-col items-center">
+          <FadeIn delay={0.05} className="pomo-timer-section">
             <PomodoroTimer size={280} />
 
             {/* Controls */}
-            <div className="flex items-center gap-3 mt-8">
+            <div className="pomo-controls">
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={reset}
-                className="w-10 h-10 rounded-xl glass flex items-center justify-center text-text-muted hover:text-text-primary transition-colors"
+                className="pomo-control-btn glass"
                 title="Reiniciar"
               >
                 <RotateCcw size={16} />
@@ -178,16 +174,16 @@ export function PomodoroFull() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.93 }}
                 onClick={isRunning ? pause : start}
-                className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary-hover text-white flex items-center justify-center shadow-lg shadow-primary/20"
+                className="pomo-play-btn"
               >
-                {isRunning ? <Pause size={22} /> : <Play size={22} className="ml-0.5" />}
+                {isRunning ? <Pause size={22} /> : <Play size={22} className="pomo-play-icon-offset" />}
               </motion.button>
 
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={skip}
-                className="w-10 h-10 rounded-xl glass flex items-center justify-center text-text-muted hover:text-text-primary transition-colors"
+                className="pomo-control-btn glass"
                 title="Saltar"
               >
                 <SkipForward size={16} />
@@ -195,49 +191,49 @@ export function PomodoroFull() {
             </div>
 
             {/* Task selector */}
-            <div className="mt-6 w-full max-w-[280px] relative">
+            <div className="pomo-task-picker">
               <button
                 onClick={() => setShowTaskPicker(!showTaskPicker)}
-                className="w-full px-4 py-2.5 rounded-xl glass text-left flex items-center gap-2 hover:shadow-sm transition-shadow"
+                className="pomo-task-btn glass"
               >
-                <div className="w-2 h-2 rounded-full flex-shrink-0" style={{
+                <div className="pomo-task-dot" style={{
                   background: selectedTask ? 'var(--color-primary)' : 'var(--color-border-strong)',
                 }} />
-                <span className={`text-[13px] truncate ${selectedTask ? 'text-text-primary' : 'text-text-muted'}`}>
+                <span className={`pomo-task-label ${selectedTask ? 'pomo-task-label--active' : 'pomo-task-label--empty'}`}>
                   {selectedTask?.title ?? 'Vincular tarea...'}
                 </span>
-                <ChevronDown size={13} className="text-text-muted ml-auto flex-shrink-0" />
+                <ChevronDown size={13} className="pomo-task-chevron" />
               </button>
 
               <AnimatePresence>
                 {showTaskPicker && (
                   <>
-                    <div className="fixed inset-0 z-40" onClick={() => setShowTaskPicker(false)} />
+                    <div className="pomo-task-overlay" onClick={() => setShowTaskPicker(false)} />
                     <motion.div
                       initial={{ opacity: 0, y: -4, scale: 0.98 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: -4, scale: 0.98 }}
-                      className="absolute top-full mt-1 left-0 right-0 z-50 glass-strong rounded-xl shadow-lg overflow-hidden"
+                      className="pomo-task-dropdown glass-strong"
                     >
-                      <div className="p-2 border-b border-border/50">
-                        <div className="flex items-center gap-2 px-2">
-                          <Search size={13} className="text-text-muted" />
+                      <div className="pomo-task-search-wrap">
+                        <div className="pomo-task-search-inner">
+                          <Search size={13} className="pomo-task-search-icon" />
                           <input
                             value={taskSearch}
                             onChange={(e) => setTaskSearch(e.target.value)}
                             placeholder="Buscar tarea..."
-                            className="flex-1 text-[12px] bg-transparent outline-none text-text-primary placeholder:text-text-muted/50"
+                            className="pomo-task-search-input"
                             autoFocus
                           />
                         </div>
                       </div>
-                      <div className="max-h-48 overflow-y-auto py-1">
+                      <div className="pomo-task-list">
                         <button
                           onClick={() => {
                             selectTask(null)
                             setShowTaskPicker(false)
                           }}
-                          className="w-full px-3 py-2 text-[12px] text-left text-text-muted hover:bg-surface-alt/60 transition-colors"
+                          className="pomo-task-option pomo-task-option--none"
                         >
                           Sin tarea
                         </button>
@@ -249,14 +245,12 @@ export function PomodoroFull() {
                               setShowTaskPicker(false)
                               setTaskSearch('')
                             }}
-                            className={`w-full px-3 py-2 text-[12px] text-left transition-colors flex items-center gap-2 ${
-                              selectedTask?.id === task.id
-                                ? 'bg-primary-light/60 text-primary font-medium'
-                                : 'text-text-primary hover:bg-surface-alt/60'
+                            className={`pomo-task-option pomo-task-option--item ${
+                              selectedTask?.id === task.id ? 'pomo-task-option--selected' : ''
                             }`}
                           >
-                            <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 bg-priority-${task.priority}`} />
-                            <span className="truncate">{task.title}</span>
+                            <span className={`pomo-task-option-dot bg-priority-${task.priority}`} />
+                            <span className="pomo-task-option-name">{task.title}</span>
                           </button>
                         ))}
                       </div>
@@ -268,7 +262,7 @@ export function PomodoroFull() {
           </FadeIn>
 
           {/* Stats section */}
-          <FadeIn delay={0.15} className="w-[280px] flex-shrink-0">
+          <FadeIn delay={0.15} className="pomo-stats-section">
             <PomodoroStats />
           </FadeIn>
         </div>

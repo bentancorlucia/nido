@@ -53,41 +53,46 @@ export function MiniCalendarWidget() {
   const weekDays = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Month nav */}
-      <div className="flex items-center justify-between mb-2">
+    <div className="minical-container">
+      {/* Month navigation */}
+      <div className="minical-nav">
         <button
           onClick={() => setCurrentMonth((m) => addMonths(m, -1))}
-          className="p-0.5 rounded hover:bg-surface-alt transition-colors"
+          className="minical-nav-btn"
         >
-          <ChevronLeft size={14} className="text-text-muted" />
+          <ChevronLeft size={15} />
         </button>
-        <span className="text-xs font-semibold text-text-primary capitalize">
+
+        <button
+          onClick={() => setCurrentMonth(new Date())}
+          className="minical-month-btn"
+        >
           {format(currentMonth, 'MMMM yyyy', { locale: es })}
-        </span>
+        </button>
+
         <button
           onClick={() => setCurrentMonth((m) => addMonths(m, 1))}
-          className="p-0.5 rounded hover:bg-surface-alt transition-colors"
+          className="minical-nav-btn"
         >
-          <ChevronRight size={14} className="text-text-muted" />
+          <ChevronRight size={15} />
         </button>
       </div>
 
-      {/* Week day headers */}
-      <div className="grid grid-cols-7 gap-0 mb-1">
+      {/* Weekday headers */}
+      <div className="minical-weekdays">
         {weekDays.map((d, i) => (
-          <div key={i} className="text-center text-[9px] font-medium text-text-muted uppercase">
+          <div key={i} className="minical-weekday">
             {d}
           </div>
         ))}
       </div>
 
-      {/* Days grid */}
-      <div className="grid grid-cols-7 gap-0 flex-1">
+      {/* Calendar grid */}
+      <div className="minical-grid">
         {days.map((day) => {
           const dateStr = format(day, 'yyyy-MM-dd')
           const inMonth = isSameMonth(day, currentMonth)
-          const today = isToday(day)
+          const todayDay = isToday(day)
           const hasEvent = eventDates.has(dateStr)
           const hasTask = taskDates.has(dateStr)
 
@@ -95,17 +100,14 @@ export function MiniCalendarWidget() {
             <button
               key={dateStr}
               onClick={() => setCurrentPage('calendar')}
-              className={`relative flex flex-col items-center justify-center rounded-md text-[10px] transition-all
-                ${!inMonth ? 'text-text-muted/30' : 'text-text-primary hover:bg-surface-alt'}
-                ${today ? 'bg-primary/15 text-primary font-bold ring-1 ring-primary/30' : ''}
-              `}
-              style={{ aspectRatio: '1' }}
+              className={`mini-cal-day ${todayDay ? 'today' : ''} ${!inMonth ? 'other-month' : ''}`}
             >
               {format(day, 'd')}
+
               {inMonth && (hasEvent || hasTask) && (
-                <div className="absolute bottom-0.5 flex gap-0.5">
-                  {hasEvent && <span className="w-1 h-1 rounded-full bg-primary" />}
-                  {hasTask && <span className="w-1 h-1 rounded-full bg-warning" />}
+                <div className="minical-dots">
+                  {hasEvent && <span className="mini-cal-dot" style={{ background: 'var(--color-primary)' }} />}
+                  {hasTask && <span className="mini-cal-dot" style={{ background: 'var(--color-warning)' }} />}
                 </div>
               )}
             </button>

@@ -14,9 +14,9 @@ export function ProjectsPage() {
   }, [])
 
   return (
-    <div className="flex h-full">
+    <div className="projects-page">
       {/* Left panel: tree */}
-      <div className="flex-shrink-0 border-r border-border bg-surface/20" style={{ width: 280 }}>
+      <div className="projects-left-panel" style={{ width: 280 }}>
         <ProjectTree
           selectedId={selectedProjectId}
           onSelect={selectProject}
@@ -24,14 +24,14 @@ export function ProjectsPage() {
       </div>
 
       {/* Right panel: detail */}
-      <div className="flex-1 min-w-0">
+      <div className="projects-right-panel">
         {selectedProjectId ? (
           <motion.div
             key={selectedProjectId}
             initial={{ opacity: 0, x: 12 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.2 }}
-            className="h-full"
+            className="projects-right-animated"
           >
             <ProjectDetail
               projectId={selectedProjectId}
@@ -41,10 +41,10 @@ export function ProjectsPage() {
             />
           </motion.div>
         ) : (
-          <div className="flex items-center justify-center h-full text-text-muted">
-            <div className="text-center">
-              <p className="text-[14px] font-medium">Seleccioná un proyecto para ver sus detalles</p>
-              <p className="text-[12px] mt-1.5 text-text-muted/50">O creá uno nuevo con el botón +</p>
+          <div className="projects-empty-state">
+            <div className="projects-empty-inner">
+              <p className="projects-empty-title">Seleccioná un proyecto para ver sus detalles</p>
+              <p className="projects-empty-subtitle">O creá uno nuevo con el botón +</p>
             </div>
           </div>
         )}

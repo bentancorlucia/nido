@@ -47,11 +47,11 @@ export function TagManager() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-5">
-        <h3 className="text-[14px] font-display font-semibold text-text-primary">Etiquetas</h3>
+      <div className="tags-header">
+        <h3 className="tags-title">Etiquetas</h3>
         <button
           onClick={() => setShowCreate(!showCreate)}
-          className="p-1.5 rounded-lg text-text-muted hover:text-primary hover:bg-primary-light/40 transition-colors"
+          className="tags-add-btn"
         >
           <Plus size={15} />
         </button>
@@ -64,7 +64,7 @@ export function TagManager() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="mb-5 glass rounded-xl overflow-hidden"
+            className="tags-create-form glass"
             style={{ padding: '16px 18px' }}
           >
             <input
@@ -72,20 +72,20 @@ export function TagManager() {
               onChange={(e) => setNewName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
               placeholder="Nombre de la etiqueta..."
-              className="w-full text-[13px] bg-transparent outline-none text-text-primary placeholder:text-text-muted/45 mb-4"
+              className="tags-create-input"
               autoFocus
             />
-            <div className="flex gap-2.5 flex-wrap mb-4">
+            <div className="tags-color-grid">
               {TAG_COLORS.map((c) => (
                 <button
                   key={c.name}
                   onClick={() => setNewColor(c.text)}
-                  className={`w-6 h-6 rounded-full transition-all ${newColor === c.text ? 'ring-2 ring-primary ring-offset-2 ring-offset-surface-solid scale-110' : 'hover:scale-105'}`}
+                  className={`tags-color-swatch ${newColor === c.text ? 'tags-color-swatch--selected' : ''}`}
                   style={{ backgroundColor: c.bg, border: `2px solid ${c.text}` }}
                 />
               ))}
             </div>
-            <div className="flex gap-2">
+            <div className="tags-create-actions">
               <Button size="sm" onClick={handleCreate} disabled={!newName.trim()}>Crear</Button>
               <Button variant="ghost" size="sm" onClick={() => setShowCreate(false)}>Cancelar</Button>
             </div>
@@ -94,57 +94,57 @@ export function TagManager() {
       </AnimatePresence>
 
       {/* Tag list */}
-      <div className="space-y-1.5">
+      <div className="tags-list">
         {tags.map((tag) => (
           <div key={tag.id}>
             {editingId === tag.id ? (
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="glass rounded-xl"
+                className="glass tags-edit-form"
                 style={{ padding: '14px 16px' }}
               >
                 <input
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleEdit()}
-                  className="w-full text-[13px] bg-transparent outline-none text-text-primary mb-2"
+                  className="tags-edit-input"
                   autoFocus
                 />
-                <div className="flex gap-2 flex-wrap mb-3">
+                <div className="tags-edit-colors">
                   {TAG_COLORS.map((c) => (
                     <button
                       key={c.name}
                       onClick={() => setEditColor(c.text)}
-                      className={`w-5 h-5 rounded-full transition-all ${editColor === c.text ? 'ring-2 ring-primary ring-offset-1 scale-110' : ''}`}
+                      className={`tags-color-swatch-sm ${editColor === c.text ? 'tags-color-swatch-sm--selected' : ''}`}
                       style={{ backgroundColor: c.bg, border: `2px solid ${c.text}` }}
                     />
                   ))}
                 </div>
-                <div className="flex gap-2">
-                  <button onClick={handleEdit} className="p-1 rounded-md bg-primary text-white"><Check size={12} /></button>
-                  <button onClick={() => setEditingId(null)} className="p-1 rounded-md text-text-muted hover:bg-surface-alt/60"><X size={12} /></button>
+                <div className="tags-edit-actions">
+                  <button onClick={handleEdit} className="tags-edit-save"><Check size={12} /></button>
+                  <button onClick={() => setEditingId(null)} className="tags-edit-cancel"><X size={12} /></button>
                 </div>
               </motion.div>
             ) : (
-              <div className="group flex items-center gap-3 px-3.5 py-2.5 rounded-xl hover:bg-surface-alt/35 transition-colors">
+              <div className="tags-item">
                 <span
-                  className="inline-flex items-center px-2.5 py-1 text-[11px] font-medium rounded-full"
+                  className="tags-item-badge"
                   style={{ backgroundColor: tag.color + '30', color: tag.color }}
                 >
                   {tag.name}
                 </span>
-                <div className="flex-1" />
-                <div className="opacity-0 group-hover:opacity-100 flex gap-1 transition-opacity">
+                <div className="tags-item-spacer" />
+                <div className="tags-item-actions">
                   <button
                     onClick={() => startEdit(tag)}
-                    className="p-1 rounded text-text-muted hover:text-primary transition-colors"
+                    className="tags-item-action-btn tags-item-action-btn--edit"
                   >
                     <Pencil size={12} />
                   </button>
                   <button
                     onClick={() => setDeleteId(tag.id)}
-                    className="p-1 rounded text-text-muted hover:text-danger transition-colors"
+                    className="tags-item-action-btn tags-item-action-btn--delete"
                   >
                     <Trash2 size={12} />
                   </button>
@@ -154,7 +154,7 @@ export function TagManager() {
           </div>
         ))}
         {tags.length === 0 && (
-          <p className="text-center text-text-muted text-xs italic py-4">Sin etiquetas</p>
+          <p className="tags-empty">Sin etiquetas</p>
         )}
       </div>
 
@@ -165,18 +165,18 @@ export function TagManager() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center"
+            className="tags-delete-overlay"
           >
-            <div className="absolute inset-0 bg-black/20" onClick={() => setDeleteId(null)} />
+            <div className="tags-delete-backdrop" onClick={() => setDeleteId(null)} />
             <motion.div
               initial={{ scale: 0.95 }}
               animate={{ scale: 1 }}
-              className="relative glass-strong rounded-2xl shadow-lift p-5 max-w-sm mx-4"
+              className="glass-strong tags-delete-modal"
             >
-              <p className="text-[13px] text-text-primary mb-4">
+              <p className="tags-delete-text">
                 ¿Eliminar la etiqueta <strong>{tags.find((t) => t.id === deleteId)?.name}</strong>? Se quitará de todas las tareas.
               </p>
-              <div className="flex justify-end gap-2">
+              <div className="tags-delete-actions">
                 <Button variant="ghost" size="sm" onClick={() => setDeleteId(null)}>Cancelar</Button>
                 <Button variant="danger" size="sm" onClick={handleDelete}>Eliminar</Button>
               </div>

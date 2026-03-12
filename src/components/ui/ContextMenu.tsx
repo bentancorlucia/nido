@@ -49,7 +49,7 @@ export function ContextMenu({ items, children }: ContextMenuProps) {
       <div onContextMenu={handleContextMenu}>{children}</div>
       <AnimatePresence>
         {open && (
-          <div className="fixed inset-0 z-[100]" onClick={() => setOpen(false)}>
+          <div className="context-menu-overlay" onClick={() => setOpen(false)}>
             <motion.div
               ref={menuRef}
               initial={{ opacity: 0, scale: 0.92, y: -4 }}
@@ -57,27 +57,20 @@ export function ContextMenu({ items, children }: ContextMenuProps) {
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.12, ease: [0.23, 1, 0.32, 1] }}
               style={{ left: pos.x, top: pos.y }}
-              className="absolute glass-strong rounded-xl shadow-lg p-1.5 min-w-[190px] overflow-hidden"
+              className="context-menu glass-strong"
               onClick={(e) => e.stopPropagation()}
             >
               {items.map((item, i) => (
                 <div key={i}>
-                  {item.divider && <div className="h-px bg-border my-1 mx-1" />}
+                  {item.divider && <div className="context-menu__divider" />}
                   <button
                     onClick={() => {
                       item.onClick()
                       setOpen(false)
                     }}
-                    className={`
-                      w-full flex items-center gap-2.5 px-3 py-2 text-[13px] font-medium rounded-lg
-                      transition-colors duration-120
-                      ${item.danger
-                        ? 'text-danger hover:bg-danger-light/50'
-                        : 'text-text-primary hover:bg-surface-alt/50'
-                      }
-                    `}
+                    className={`context-menu__item ${item.danger ? 'context-menu__item--danger' : ''}`}
                   >
-                    {item.icon && <span className="w-4 h-4 flex-shrink-0 flex items-center justify-center">{item.icon}</span>}
+                    {item.icon && <span className="context-menu__item-icon">{item.icon}</span>}
                     {item.label}
                   </button>
                 </div>

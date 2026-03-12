@@ -5,9 +5,10 @@ interface TimelineHourProps {
   hour: number
   events: CalendarEvent[]
   isCurrentHour: boolean
+  currentMinute?: number
 }
 
-export function TimelineHour({ hour, events, isCurrentHour }: TimelineHourProps) {
+export function TimelineHour({ hour, events, isCurrentHour, currentMinute = 0 }: TimelineHourProps) {
   const label = `${hour.toString().padStart(2, '0')}:00`
 
   const eventsInHour = events.filter((e) => {
@@ -16,29 +17,35 @@ export function TimelineHour({ hour, events, isCurrentHour }: TimelineHourProps)
     return startHour <= hour && endHour > hour
   })
 
+  const nowPct = isCurrentHour ? (currentMinute / 60) * 100 : 0
+
   return (
-    <div className={`flex gap-4 min-h-[64px] group ${isCurrentHour ? 'relative' : ''}`}>
-      {/* Hour label */}
-      <div className="w-11 flex-shrink-0 pt-0 text-right">
-        <span className={`text-[11px] font-mono tabular-nums transition-colors ${
-          isCurrentHour ? 'text-primary font-semibold' : 'text-text-muted/70'
+    <div className={`timeline-hour ${isCurrentHour ? 'timeline-hour-current' : ''}`}>
+      <div className="timeline-hour-label">
+        <span className={`timeline-hour-label-text ${
+          isCurrentHour ? 'timeline-hour-label-active' : 'timeline-hour-label-inactive'
         }`}>
           {label}
         </span>
       </div>
 
-      {/* Timeline line + content */}
-      <div className="flex-1 border-t border-border/30 pt-2 pb-3 relative group-hover:border-border/50 transition-colors">
+      <div className="timeline-hour-content">
+        {/* Now line inside the current hour */}
+        {isCurrentHour && (
+          <div className="timeline-now-line" style={{ top: `${nowPct}%` }}>
+            <div className="timeline-now-dot" />
+            <div className="timeline-now-bar" />
+          </div>
+        )}
+
         {eventsInHour.map((event) => {
-          const startMin = parseInt(event.start_datetime.split('T')[1]?.split(':')[1] ?? '0')
           const startH = parseInt(event.start_datetime.split('T')[1]?.split(':')[0] ?? '0')
           const endH = parseInt(event.end_datetime.split('T')[1]?.split(':')[0] ?? '0')
           const endMin = parseInt(event.end_datetime.split('T')[1]?.split(':')[1] ?? '0')
 
-          // Only render in the start hour to avoid duplicates
           if (startH !== hour) return null
 
-          const durationMinutes = (endH - startH) * 60 + (endMin - startMin)
+          const durationMinutes = (endH - startH) * 60 + (endMin - parseInt(event.start_datetime.split('T')[1]?.split(':')[1] ?? '0'))
           const heightBlocks = Math.max(1, Math.ceil(durationMinutes / 60))
 
           return (
@@ -46,19 +53,18 @@ export function TimelineHour({ hour, events, isCurrentHour }: TimelineHourProps)
               key={event.id}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="mb-1.5 px-3 py-2.5 rounded-xl text-[12px] font-medium shadow-sm transition-shadow hover:shadow-md"
+              className="timeline-hour-event"
               style={{
                 backgroundColor: event.color ? `${event.color}20` : 'var(--color-primary-light)',
                 borderLeft: `3px solid ${event.color || 'var(--color-primary)'}`,
-                minHeight: `${heightBlocks * 52}px`,
               }}
             >
-              <p className="text-text-primary font-medium">{event.title}</p>
-              <p className="text-text-muted text-[10px] mt-1 font-mono tabular-nums">
+              <p className="timeline-hour-event-title">{event.title}</p>
+              <p className="timeline-hour-event-time">
                 {event.start_datetime.split('T')[1]?.slice(0, 5)} — {event.end_datetime.split('T')[1]?.slice(0, 5)}
               </p>
               {event.location && (
-                <p className="text-text-muted text-[10px] mt-0.5">{event.location}</p>
+                <p className="timeline-hour-event-location">{event.location}</p>
               )}
             </motion.div>
           )

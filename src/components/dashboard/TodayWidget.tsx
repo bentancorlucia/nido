@@ -43,69 +43,94 @@ export function TodayWidget() {
   }
 
   const today = new Date().toISOString().split('T')[0]
+  const overdueCount = tasks.filter((task) => task.due_date !== null && task.due_date < today).length
+
+  if (tasks.length === 0) {
+    return (
+      <div className="widget-empty">
+        <div className="widget-empty-icon">
+          <CheckCircle2 size={22} />
+        </div>
+        <p className="today-empty-title">Todo al día</p>
+        <p className="today-empty-subtitle">No hay tareas pendientes para hoy</p>
+      </div>
+    )
+  }
 
   return (
-    <div className="h-full flex flex-col gap-1 overflow-hidden">
-      {tasks.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center text-center py-4">
-          <CheckCircle2 size={28} className="text-accent/40 mb-2" />
-          <p className="text-xs text-text-muted">Todo al día</p>
+    <div className="today-container">
+      {/* Summary bar */}
+      <div className="today-summary">
+        <div className="today-summary-left">
+          <span className="today-count">{tasks.length}</span>
+          <span className="today-label">pendientes</span>
         </div>
-      ) : (
-        <div className="flex-1 overflow-y-auto space-y-1 pr-1 -mr-1">
-          <AnimatePresence mode="popLayout">
-            {tasks.map((task) => {
-              const isOverdue = task.due_date !== null && task.due_date < today
-              const isCompleting = completing === task.id
-              return (
-                <motion.div
-                  key={task.id}
-                  layout
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: isCompleting ? 0.4 : 1, x: 0, scale: isCompleting ? 0.97 : 1 }}
-                  exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-                  transition={{ duration: 0.2 }}
-                  className="flex items-start gap-2 p-2 rounded-lg hover:bg-surface-alt/60 transition-colors group"
+        {overdueCount > 0 && (
+          <span className="urgency-badge danger">
+            <AlertTriangle size={10} />
+            {overdueCount} vencida{overdueCount > 1 ? 's' : ''}
+          </span>
+        )}
+      </div>
+
+      {/* Task list */}
+      <div className="widget-scroll today-task-list">
+        <AnimatePresence mode="popLayout">
+          {tasks.map((task) => {
+            const isOverdue = task.due_date !== null && task.due_date < today
+            const isCompleting = completing === task.id
+
+            return (
+              <motion.div
+                key={task.id}
+                layout
+                initial={{ opacity: 0, x: -12 }}
+                animate={{
+                  opacity: isCompleting ? 0.4 : 1,
+                  x: 0,
+                  scale: isCompleting ? 0.97 : 1,
+                }}
+                exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                transition={{ duration: 0.2 }}
+                className="widget-task-item"
+              >
+                <button
+                  onClick={() => toggleComplete(task.id)}
+                  className={`task-check ${isCompleting ? 'completed' : ''}`}
                 >
-                  <button
-                    onClick={() => toggleComplete(task.id)}
-                    className={`mt-0.5 w-4 h-4 rounded-full border-2 flex-shrink-0 transition-all
-                      ${isCompleting
-                        ? 'bg-accent border-accent scale-110'
-                        : 'border-border-strong hover:border-primary group-hover:border-primary'
-                      }`}
-                  >
-                    {isCompleting && <CheckCircle2 size={12} className="text-text-on-accent m-auto" />}
-                  </button>
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-xs font-medium text-text-primary leading-tight truncate ${isCompleting ? 'line-through text-text-muted' : ''}`}>
-                      {task.title}
-                    </p>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      {isOverdue && (
-                        <span className="inline-flex items-center gap-0.5 text-[10px] text-danger font-medium">
-                          <AlertTriangle size={9} />
-                          Vencida
-                        </span>
-                      )}
-                      {task.due_time && (
-                        <span className="inline-flex items-center gap-0.5 text-[10px] text-text-muted">
-                          <Clock size={9} />
-                          {task.due_time}
-                        </span>
-                      )}
-                      <span className={`w-1.5 h-1.5 rounded-full ${
-                        task.priority === 'alta' ? 'bg-priority-alta' :
-                        task.priority === 'media' ? 'bg-priority-media' : 'bg-priority-baja'
-                      }`} />
-                    </div>
+                  {isCompleting && <CheckCircle2 size={11} className="today-check-icon" />}
+                </button>
+
+                <div className="today-task-content">
+                  <p className={`today-task-title ${isCompleting ? 'completing' : ''}`}>
+                    {task.title}
+                  </p>
+
+                  <div className="today-task-meta">
+                    {isOverdue && (
+                      <span className="urgency-badge danger" style={{ fontSize: 9, padding: '1px 6px' }}>
+                        Vencida
+                      </span>
+                    )}
+
+                    {task.due_time && (
+                      <span className="today-task-time">
+                        <Clock size={10} />
+                        {task.due_time}
+                      </span>
+                    )}
+
+                    <span
+                      className={`priority-stripe ${task.priority}`}
+                      style={{ width: 6, height: 6, minHeight: 6, borderRadius: '50%' }}
+                    />
                   </div>
-                </motion.div>
-              )
-            })}
-          </AnimatePresence>
-        </div>
-      )}
+                </div>
+              </motion.div>
+            )
+          })}
+        </AnimatePresence>
+      </div>
     </div>
   )
 }

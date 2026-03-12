@@ -41,34 +41,26 @@ export function Dropdown({
   const selected = options.find((o) => o.value === value)
 
   return (
-    <div className={`flex flex-col gap-2 ${className}`} ref={ref}>
+    <div className={`dropdown ${className}`} ref={ref}>
       {label && (
-        <label className="text-[13px] font-display font-medium text-text-secondary">
+        <label className="dropdown__label">
           {label}
         </label>
       )}
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className={`
-          relative w-full flex items-center justify-between gap-2
-          px-4 py-2.5 rounded-xl border text-[13.5px]
-          bg-surface-solid/40 text-text-primary
-          border-border hover:border-border-strong
-          focus:border-border-focus focus:ring-2 focus:ring-border-focus/12
-          outline-none transition-all duration-200 shadow-inner
-          ${!selected ? 'text-text-muted/50' : ''}
-        `}
+        className={`dropdown__trigger ${!selected ? 'dropdown__trigger--placeholder' : ''}`}
       >
-        <span className="flex items-center gap-2 truncate">
+        <span className="dropdown__selected">
           {selected?.icon}
           {selected?.color && (
-            <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: selected.color }} />
+            <span className="dropdown__color-dot" style={{ backgroundColor: selected.color }} />
           )}
           {selected?.label ?? placeholder}
         </span>
         <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.15 }}>
-          <ChevronDown size={14} className="text-text-muted" />
+          <ChevronDown size={14} className="dropdown__chevron" />
         </motion.div>
       </button>
 
@@ -79,7 +71,7 @@ export function Dropdown({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, scale: 0.97 }}
             transition={{ duration: 0.12, ease: [0.23, 1, 0.32, 1] }}
-            className="relative z-50 w-full mt-1.5 glass-strong rounded-xl shadow-lg py-1.5 max-h-60 overflow-y-auto"
+            className="dropdown__menu glass-strong"
           >
             {options.map((opt) => (
               <button
@@ -88,18 +80,11 @@ export function Dropdown({
                   onChange(opt.value)
                   setOpen(false)
                 }}
-                className={`
-                  w-full flex items-center gap-2.5 px-4 py-2 text-[13px] rounded-lg
-                  transition-colors duration-120
-                  ${opt.value === value
-                    ? 'bg-primary-light/50 text-primary font-medium'
-                    : 'text-text-primary hover:bg-surface-alt/50'
-                  }
-                `}
+                className={`dropdown__option ${opt.value === value ? 'dropdown__option--selected' : ''}`}
               >
                 {opt.icon}
                 {opt.color && (
-                  <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: opt.color }} />
+                  <span className="dropdown__color-dot" style={{ backgroundColor: opt.color }} />
                 )}
                 {opt.label}
               </button>

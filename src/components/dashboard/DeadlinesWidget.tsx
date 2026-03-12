@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { CalendarClock } from 'lucide-react'
+import { motion } from 'framer-motion'
+import { CalendarClock, ArrowRight } from 'lucide-react'
 import { format, addDays, isToday, isTomorrow, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { dbQuery } from '../../lib/ipc'
@@ -33,7 +34,6 @@ export function DeadlinesWidget() {
       [today, endDate]
     )
 
-    // Group by date
     const grouped: Record<string, Task[]> = {}
     for (const task of tasks) {
       const date = task.due_date!
@@ -41,12 +41,12 @@ export function DeadlinesWidget() {
       grouped[date].push(task)
     }
 
-    const result: DeadlineGroup[] = Object.entries(grouped).map(([date, tasks]) => {
+    const result: DeadlineGroup[] = Object.entries(grouped).map(([date, groupedTasks]) => {
       const parsed = parseISO(date)
       let label = format(parsed, "EEEE d 'de' MMMM", { locale: es })
       if (isToday(parsed)) label = 'Hoy'
       else if (isTomorrow(parsed)) label = 'Mañana'
-      return { label, date, tasks }
+      return { label, date, tasks: groupedTasks }
     })
 
     setGroups(result)
@@ -54,49 +54,85 @@ export function DeadlinesWidget() {
 
   const today = new Date().toISOString().split('T')[0]
 
-  return (
-    <div className="h-full flex flex-col overflow-hidden">
-      {groups.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center text-center py-4">
-          <CalendarClock size={28} className="text-primary/30 mb-2" />
-          <p className="text-xs text-text-muted">Sin deadlines próximos</p>
+  if (groups.length === 0) {
+    return (
+      <div className="widget-empty">
+        <div className="widget-empty-icon">
+          <CalendarClock size={22} />
         </div>
-      ) : (
-        <div className="flex-1 overflow-y-auto space-y-3 pr-1 -mr-1">
-          {groups.map((group) => (
-            <div key={group.date}>
-              <h4 className="text-[10px] font-semibold uppercase tracking-wider text-text-muted mb-1 capitalize">
-                {group.label}
-              </h4>
-              <div className="space-y-0.5">
-                {group.tasks.map((task) => {
-                  const daysLeft = Math.ceil(
-                    (new Date(task.due_date!).getTime() - new Date(today).getTime()) / 86400000
-                  )
-                  const urgencyColor = daysLeft <= 0 ? 'bg-danger' : daysLeft <= 1 ? 'bg-warning' : 'bg-primary'
+        <p className="deadlines-empty-title">Sin deadlines próximos</p>
+        <p className="deadlines-empty-subtitle">Nada vence en los próximos 7 días</p>
+      </div>
+    )
+  }
 
-                  return (
-                    <div
-                      key={task.id}
-                      className="flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-surface-alt/60 transition-colors"
-                    >
-                      <div className={`w-1 h-6 rounded-full ${urgencyColor} flex-shrink-0`} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs text-text-primary truncate">{task.title}</p>
-                      </div>
-                      <span className={`text-[10px] font-mono font-medium flex-shrink-0 ${
-                        daysLeft <= 0 ? 'text-danger' : daysLeft <= 1 ? 'text-warning' : 'text-text-muted'
-                      }`}>
-                        {daysLeft <= 0 ? 'HOY' : `${daysLeft}d`}
-                      </span>
-                    </div>
-                  )
-                })}
-              </div>
+  return (
+    <div className="widget-scroll deadlines-list">
+      {groups.map((group, gi) => {
+        const daysFromToday = Math.ceil(
+          (new Date(group.date).getTime() - new Date(today).getTime()) / 86400000
+        )
+
+        return (
+          <motion.div
+            key={group.date}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: gi * 0.06 }}
+          >
+            {/* Date label */}
+            <div className="deadlines-date-row">
+              <span
+                className={`deadlines-date-label ${
+                  daysFromToday <= 0 ? 'danger' : daysFromToday <= 1 ? 'warning' : 'normal'
+                }`}
+              >
+                {group.label}
+              </span>
+              <div className="deadlines-divider" />
             </div>
-          ))}
-        </div>
-      )}
+
+            {/* Tasks */}
+            <div className="deadlines-tasks">
+              {group.tasks.map((task) => {
+                const daysLeft = Math.ceil(
+                  (new Date(task.due_date!).getTime() - new Date(today).getTime()) / 86400000
+                )
+
+                const badgeClass =
+                  daysLeft <= 0 ? 'danger' : daysLeft <= 1 ? 'warning' : 'info'
+                const badge = daysLeft <= 0 ? 'HOY' : daysLeft === 1 ? '1d' : `${daysLeft}d`
+
+                return (
+                  <div
+                    key={task.id}
+                    className="deadlines-task-row"
+                  >
+                    <div
+                      className={`priority-stripe ${task.priority}`}
+                      style={{ minHeight: 24, width: 3 }}
+                    />
+
+                    <div className="deadlines-task-content">
+                      <p className="deadlines-task-title">
+                        {task.title}
+                      </p>
+                      <p className="deadlines-task-date">
+                        {format(parseISO(task.due_date!), "d 'de' MMM", { locale: es })}
+                      </p>
+                    </div>
+
+                    <span className={`urgency-badge ${badgeClass}`}>
+                      {badge}
+                      <ArrowRight size={9} />
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </motion.div>
+        )
+      })}
     </div>
   )
 }

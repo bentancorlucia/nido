@@ -70,12 +70,12 @@ export function CalendarPage() {
   }, [])
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="cal-root">
       {/* Top bar with tabs */}
       <FadeIn>
-        <div className="flex items-center justify-between" style={{ padding: '20px 28px 10px' }}>
+        <div className="cal-topbar" style={{ padding: '20px 28px 10px' }}>
           {/* View tabs */}
-          <div className="flex items-center gap-1 glass rounded-xl p-1">
+          <div className="cal-tabs glass">
             {VIEW_TABS.map((tab) => {
               const Icon = tab.icon
               const active = view === tab.id
@@ -85,23 +85,16 @@ export function CalendarPage() {
                   whileHover={{ scale: active ? 1 : 1.03 }}
                   whileTap={{ scale: 0.97 }}
                   onClick={() => setView(tab.id)}
-                  className={`
-                    relative flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-[13px] font-medium
-                    transition-colors duration-150 cursor-pointer
-                    ${active
-                      ? 'text-primary'
-                      : 'text-text-muted hover:text-text-secondary'
-                    }
-                  `}
+                  className={`cal-tab ${active ? 'cal-tab-active' : 'cal-tab-inactive'}`}
                 >
                   {active && (
                     <motion.div
                       layoutId="calendar-tab-bg"
-                      className="absolute inset-0 bg-primary-light/50 rounded-lg"
+                      className="cal-tab-bg"
                       transition={{ type: 'spring', stiffness: 500, damping: 35 }}
                     />
                   )}
-                  <span className="relative flex items-center gap-1.5">
+                  <span className="cal-tab-label">
                     <Icon size={15} />
                     {tab.label}
                   </span>
@@ -120,10 +113,7 @@ export function CalendarPage() {
               setDefaultHour(null)
               setModalOpen(true)
             }}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl
-                       bg-gradient-to-r from-primary to-primary-hover
-                       text-text-on-primary text-[13px] font-medium
-                       shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+            className="cal-new-event-btn"
           >
             <Plus size={16} />
             Nuevo evento
@@ -139,7 +129,7 @@ export function CalendarPage() {
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -6 }}
           transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
-          className="flex-1 min-h-0"
+          className="cal-view-content"
         >
           {view === 'month' && (
             <MonthView onClickEvent={handleClickEvent} onClickDay={handleClickDay} />

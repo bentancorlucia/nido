@@ -217,6 +217,12 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   },
 
   moveTask: async (id, columnId, sortOrder) => {
+    // Optimistic local update for snappy drag feedback
+    set((state) => ({
+      tasks: state.tasks.map((t) =>
+        t.id === id ? { ...t, column_id: columnId, sort_order: sortOrder } : t
+      ),
+    }))
     await dbUpdate('tasks', id, {
       column_id: columnId,
       sort_order: sortOrder,

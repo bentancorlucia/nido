@@ -33,13 +33,13 @@ export function PomodoroTimer({ size = 280 }: PomodoroTimerProps) {
   }
 
   return (
-    <div className="relative" style={{ width: size, height: size }}>
+    <div className="ptimer-root" style={{ width: size, height: size }}>
       {/* Ambient glow */}
       {isRunning && (
         <motion.div
           animate={{ opacity: [0.3, 0.6, 0.3] }}
           transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-          className="absolute inset-0 rounded-full"
+          className="ptimer-glow"
           style={{
             background: `radial-gradient(circle, ${colors.glow} 0%, transparent 70%)`,
             transform: 'scale(1.15)',
@@ -47,7 +47,7 @@ export function PomodoroTimer({ size = 280 }: PomodoroTimerProps) {
         />
       )}
 
-      <svg width={size} height={size} className="transform -rotate-90">
+      <svg width={size} height={size} className="ptimer-svg">
         {/* Background track */}
         <circle
           cx={center}
@@ -101,18 +101,18 @@ export function PomodoroTimer({ size = 280 }: PomodoroTimerProps) {
       </svg>
 
       {/* Center content */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
+      <div className="ptimer-center">
         <motion.span
           key={timeRemaining}
-          className="text-5xl font-mono font-bold text-text-primary tabular-nums tracking-tighter"
+          className="ptimer-time"
           style={{ fontFamily: 'var(--font-mono)' }}
         >
           {minutes.toString().padStart(2, '0')}:{seconds.toString().padStart(2, '0')}
         </motion.span>
-        <p className="text-[12px] font-medium mt-1" style={{ color: colors.stroke }}>
+        <p className="ptimer-phase" style={{ color: colors.stroke }}>
           {phaseLabels[phase]}
         </p>
-        <p className="text-[11px] text-text-muted mt-0.5">
+        <p className="ptimer-session">
           Sesión {sessionNumber} de {sessionsPerCycle}
         </p>
       </div>

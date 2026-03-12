@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Repeat, X } from 'lucide-react'
 import { Toggle } from '../ui/Toggle'
@@ -52,6 +52,35 @@ function parseExistingRule(rule: string | null): {
   }
 }
 
+const miniInput: React.CSSProperties = {
+  width: 56,
+  padding: '6px 8px',
+  borderRadius: 8,
+  border: '1.5px solid var(--color-border)',
+  backgroundColor: 'var(--color-surface-solid)',
+  fontSize: 12,
+  fontFamily: 'var(--font-mono)',
+  fontWeight: 500,
+  color: 'var(--color-text-primary)',
+  outline: 'none',
+  textAlign: 'center',
+  boxShadow: 'var(--shadow-inner)',
+}
+
+const miniSelect: React.CSSProperties = {
+  padding: '6px 10px',
+  borderRadius: 8,
+  border: '1.5px solid var(--color-border)',
+  backgroundColor: 'var(--color-surface-solid)',
+  fontSize: 12,
+  fontWeight: 500,
+  fontFamily: 'var(--font-sans)',
+  color: 'var(--color-text-primary)',
+  outline: 'none',
+  cursor: 'pointer',
+  boxShadow: 'var(--shadow-inner)',
+}
+
 export function RecurrenceConfig({ task, onSave }: RecurrenceConfigProps) {
   const isRecurring = task.is_recurring === 1
   const parsed = parseExistingRule(task.recurrence_rule)
@@ -96,14 +125,28 @@ export function RecurrenceConfig({ task, onSave }: RecurrenceConfigProps) {
     { value: 'weekly', label: 'Semanal' },
     { value: 'monthly', label: 'Mensual' },
     { value: 'yearly', label: 'Anual' },
-    { value: 'weekdays', label: 'Días hábiles' },
+    { value: 'weekdays', label: 'D\u00edas h\u00e1biles' },
     { value: 'custom', label: 'Personalizado' },
   ]
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-2">
-        <label className="text-[11px] text-text-muted uppercase tracking-wider font-medium flex items-center gap-1.5">
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+      }}>
+        <label style={{
+          fontSize: 10,
+          fontWeight: 700,
+          textTransform: 'uppercase',
+          letterSpacing: '0.08em',
+          color: 'var(--color-text-muted)',
+          fontFamily: 'var(--font-display)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 7,
+        }}>
           <Repeat size={12} />
           Recurrencia
         </label>
@@ -116,137 +159,220 @@ export function RecurrenceConfig({ task, onSave }: RecurrenceConfigProps) {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden space-y-3"
+            style={{ overflow: 'hidden' }}
           >
-            {/* Current rule label */}
-            {task.recurrence_rule && (
-              <p className="text-[12px] text-primary font-medium">
-                {recurrenceLabel(task.recurrence_rule)}
-              </p>
-            )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 14 }}>
+              {/* Current rule label */}
+              {task.recurrence_rule && (
+                <p style={{
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: 'var(--color-primary)',
+                  margin: 0,
+                }}>
+                  {recurrenceLabel(task.recurrence_rule)}
+                </p>
+              )}
 
-            {/* Type selector */}
-            <div className="flex gap-1.5 flex-wrap">
-              {typeOptions.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => {
-                    setType(opt.value)
-                    updateRule(opt.value)
-                  }}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-all ${
-                    type === opt.value
-                      ? 'ring-2 ring-primary/30 bg-primary-light/50 text-primary'
-                      : 'bg-surface-alt/30 text-text-secondary hover:bg-surface-alt/60'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Weekly: day selection */}
-            {type === 'weekly' && (
-              <div className="flex gap-1.5">
-                {WEEK_DAYS.map((day) => (
-                  <button
-                    key={day.value}
+              {/* Type selector */}
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                {typeOptions.map((opt) => (
+                  <TypeChip
+                    key={opt.value}
+                    label={opt.label}
+                    isActive={type === opt.value}
                     onClick={() => {
-                      const next = weekDays.includes(day.value)
-                        ? weekDays.filter((d) => d !== day.value)
-                        : [...weekDays, day.value].sort()
-                      setWeekDays(next)
-                      updateRule('weekly', { weekDays: next })
+                      setType(opt.value)
+                      updateRule(opt.value)
                     }}
-                    className={`w-7 h-7 rounded-lg text-[11px] font-semibold transition-all ${
-                      weekDays.includes(day.value)
-                        ? 'bg-primary text-white'
-                        : 'bg-surface-alt/30 text-text-muted hover:bg-surface-alt/60'
-                    }`}
-                  >
-                    {day.label}
-                  </button>
+                  />
                 ))}
               </div>
-            )}
 
-            {/* Monthly: day picker */}
-            {type === 'monthly' && (
-              <div className="flex items-center gap-2">
-                <span className="text-[12px] text-text-secondary">Día</span>
+              {/* Weekly: day selection */}
+              {type === 'weekly' && (
+                <div style={{ display: 'flex', gap: 6 }}>
+                  {WEEK_DAYS.map((day) => (
+                    <DayChip
+                      key={day.value}
+                      label={day.label}
+                      isActive={weekDays.includes(day.value)}
+                      onClick={() => {
+                        const next = weekDays.includes(day.value)
+                          ? weekDays.filter((d) => d !== day.value)
+                          : [...weekDays, day.value].sort()
+                        setWeekDays(next)
+                        updateRule('weekly', { weekDays: next })
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Monthly: day picker */}
+              {type === 'monthly' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 12, color: 'var(--color-text-secondary)', fontWeight: 500 }}>D\u00eda</span>
+                  <input
+                    type="number"
+                    value={monthDay}
+                    onChange={(e) => {
+                      const val = Math.min(31, Math.max(1, parseInt(e.target.value) || 1))
+                      setMonthDay(val)
+                      updateRule('monthly', { monthDay: val })
+                    }}
+                    style={miniInput}
+                    min={1}
+                    max={31}
+                  />
+                  <span style={{ fontSize: 12, color: 'var(--color-text-muted)', fontWeight: 500 }}>de cada mes</span>
+                </div>
+              )}
+
+              {/* Custom interval */}
+              {type === 'custom' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 12, color: 'var(--color-text-secondary)', fontWeight: 500 }}>Cada</span>
+                  <input
+                    type="number"
+                    value={customInterval}
+                    onChange={(e) => {
+                      const val = Math.max(1, parseInt(e.target.value) || 2)
+                      setCustomInterval(val)
+                      updateRule('custom', { customInterval: val })
+                    }}
+                    style={miniInput}
+                    min={1}
+                  />
+                  <select
+                    value={customUnit}
+                    onChange={(e) => {
+                      const val = e.target.value as 'days' | 'weeks'
+                      setCustomUnit(val)
+                      updateRule('custom', { customUnit: val })
+                    }}
+                    style={miniSelect}
+                  >
+                    <option value="days">d\u00edas</option>
+                    <option value="weeks">semanas</option>
+                  </select>
+                </div>
+              )}
+
+              {/* End date */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <span style={{ fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 500 }}>Finaliza:</span>
                 <input
-                  type="number"
-                  value={monthDay}
+                  type="date"
+                  value={endDate}
                   onChange={(e) => {
-                    const val = Math.min(31, Math.max(1, parseInt(e.target.value) || 1))
-                    setMonthDay(val)
-                    updateRule('monthly', { monthDay: val })
+                    setEndDate(e.target.value)
+                    onSave({ recurrence_end: e.target.value || null })
                   }}
-                  className="w-14 px-2 py-1 rounded-lg glass text-[12px] text-text-primary outline-none font-mono text-center"
-                  min={1}
-                  max={31}
+                  style={{
+                    fontSize: 12,
+                    backgroundColor: 'transparent',
+                    outline: 'none',
+                    border: 'none',
+                    color: 'var(--color-text-primary)',
+                    fontWeight: 500,
+                    fontFamily: 'var(--font-sans)',
+                    cursor: 'pointer',
+                  }}
                 />
-                <span className="text-[12px] text-text-muted">de cada mes</span>
-              </div>
-            )}
-
-            {/* Custom interval */}
-            {type === 'custom' && (
-              <div className="flex items-center gap-2">
-                <span className="text-[12px] text-text-secondary">Cada</span>
-                <input
-                  type="number"
-                  value={customInterval}
-                  onChange={(e) => {
-                    const val = Math.max(1, parseInt(e.target.value) || 2)
-                    setCustomInterval(val)
-                    updateRule('custom', { customInterval: val })
-                  }}
-                  className="w-14 px-2 py-1 rounded-lg glass text-[12px] text-text-primary outline-none font-mono text-center"
-                  min={1}
-                />
-                <select
-                  value={customUnit}
-                  onChange={(e) => {
-                    const val = e.target.value as 'days' | 'weeks'
-                    setCustomUnit(val)
-                    updateRule('custom', { customUnit: val })
-                  }}
-                  className="px-2 py-1 rounded-lg glass text-[12px] text-text-primary outline-none"
-                >
-                  <option value="days">días</option>
-                  <option value="weeks">semanas</option>
-                </select>
-              </div>
-            )}
-
-            {/* End date */}
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] text-text-muted">Finaliza:</span>
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => {
-                  setEndDate(e.target.value)
-                  onSave({ recurrence_end: e.target.value || null })
-                }}
-                className="text-[12px] bg-transparent outline-none text-text-primary"
-              />
-              {endDate && (
-                <button
-                  onClick={() => {
+                {endDate && (
+                  <ClearDateButton onClick={() => {
                     setEndDate('')
                     onSave({ recurrence_end: null })
-                  }}
-                  className="p-0.5 text-text-muted hover:text-text-primary"
-                >
-                  <X size={11} />
-                </button>
-              )}
+                  }} />
+                )}
+              </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
     </div>
+  )
+}
+
+/* Local sub-components */
+
+function TypeChip({ label, isActive, onClick }: { label: string; isActive: boolean; onClick: () => void }) {
+  const [hover, setHover] = useState(false)
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        padding: '5px 12px',
+        borderRadius: 8,
+        border: isActive ? '1.5px solid var(--color-primary)' : '1.5px solid var(--color-border)',
+        cursor: 'pointer',
+        fontSize: 11,
+        fontWeight: isActive ? 600 : 500,
+        fontFamily: 'var(--font-sans)',
+        backgroundColor: isActive ? 'var(--color-primary-light)' : (hover ? 'var(--color-surface-alt)' : 'var(--color-surface-solid)'),
+        color: isActive ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+        transition: 'all 150ms ease',
+      }}
+    >
+      {label}
+    </button>
+  )
+}
+
+function DayChip({ label, isActive, onClick }: { label: string; isActive: boolean; onClick: () => void }) {
+  const [hover, setHover] = useState(false)
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        width: 30,
+        height: 30,
+        borderRadius: 8,
+        border: 'none',
+        cursor: 'pointer',
+        fontSize: 11,
+        fontWeight: 600,
+        fontFamily: 'var(--font-sans)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: isActive ? 'var(--color-primary)' : (hover ? 'var(--color-surface-alt)' : 'var(--color-surface-solid)'),
+        color: isActive ? 'white' : 'var(--color-text-muted)',
+        transition: 'all 150ms ease',
+        boxShadow: isActive ? '0 2px 8px rgba(1, 167, 194, 0.3)' : 'none',
+      }}
+    >
+      {label}
+    </button>
+  )
+}
+
+function ClearDateButton({ onClick }: { onClick: () => void }) {
+  const [hover, setHover] = useState(false)
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        padding: 3,
+        borderRadius: 6,
+        border: 'none',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: hover ? 'var(--color-surface-alt)' : 'transparent',
+        color: hover ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
+        transition: 'all 150ms ease',
+      }}
+    >
+      <X size={11} />
+    </button>
   )
 }

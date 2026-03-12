@@ -71,30 +71,28 @@ export function WeekView({ onClickEvent, onClickSlot }: WeekViewProps) {
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="week-root">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4">
-        <div className="flex items-center gap-3">
-          <h2 className="text-lg font-display font-bold text-text-primary capitalize tracking-tight">
+      <div className="week-header">
+        <div className="week-header-left">
+          <h2 className="week-title">
             {weekLabel}
           </h2>
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={goToToday}
-            className="px-3 py-1.5 text-xs font-medium text-primary bg-primary-light/50 rounded-lg
-                       hover:bg-primary-light transition-colors"
+            className="month-today-btn"
           >
             Hoy
           </motion.button>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="week-nav">
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={() => navigateWeek(-1)}
-            className="p-2 rounded-xl text-text-secondary hover:text-text-primary
-                       hover:bg-surface-alt/60 transition-colors"
+            className="cal-nav-btn"
           >
             <ChevronLeft size={18} />
           </motion.button>
@@ -102,8 +100,7 @@ export function WeekView({ onClickEvent, onClickSlot }: WeekViewProps) {
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={() => navigateWeek(1)}
-            className="p-2 rounded-xl text-text-secondary hover:text-text-primary
-                       hover:bg-surface-alt/60 transition-colors"
+            className="cal-nav-btn"
           >
             <ChevronRight size={18} />
           </motion.button>
@@ -111,26 +108,20 @@ export function WeekView({ onClickEvent, onClickSlot }: WeekViewProps) {
       </div>
 
       {/* Day headers */}
-      <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-border">
+      <div className="week-day-headers">
         <div />
         {days.map((day) => {
           const today = isToday(day)
           return (
             <div
               key={day.toISOString()}
-              className={`
-                py-2.5 text-center border-l border-border
-                ${today ? 'bg-primary-light/30' : ''}
-              `}
+              className={`week-day-header ${today ? 'week-day-header-today' : ''}`}
             >
-              <span className="text-[11px] text-text-muted uppercase tracking-wider block">
+              <span className="week-day-name">
                 {format(day, 'EEE', { locale: es })}
               </span>
               <span
-                className={`
-                  inline-flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold mt-0.5
-                  ${today ? 'bg-primary text-text-on-primary' : 'text-text-primary'}
-                `}
+                className={`week-day-num ${today ? 'week-day-num-today' : 'week-day-num-normal'}`}
               >
                 {format(day, 'd')}
               </span>
@@ -143,17 +134,17 @@ export function WeekView({ onClickEvent, onClickSlot }: WeekViewProps) {
       <AllDaySection days={days} onClickEvent={onClickEvent} />
 
       {/* Timeline grid */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto">
-        <div className="grid grid-cols-[60px_repeat(7,1fr)] relative">
+      <div ref={scrollRef} className="week-timeline-scroll">
+        <div className="week-timeline-grid">
           {/* Hour labels */}
-          <div className="relative">
+          <div className="week-hours-col">
             {HOURS.map((hour) => (
               <div
                 key={hour}
-                className="flex items-start justify-end pr-3 text-[11px] text-text-muted font-mono"
+                className="week-hour-label"
                 style={{ height: HOUR_HEIGHT }}
               >
-                <span className="-mt-2">{`${hour.toString().padStart(2, '0')}:00`}</span>
+                <span className="week-hour-label-text">{`${hour.toString().padStart(2, '0')}:00`}</span>
               </div>
             ))}
           </div>
@@ -167,13 +158,13 @@ export function WeekView({ onClickEvent, onClickSlot }: WeekViewProps) {
             return (
               <div
                 key={dateStr}
-                className={`relative border-l border-border ${today ? 'bg-primary-light/10' : ''}`}
+                className={`week-day-col ${today ? 'week-day-col-today' : ''}`}
               >
                 {/* Hour grid lines */}
                 {HOURS.map((hour) => (
                   <div
                     key={hour}
-                    className="border-b border-border/50 cursor-pointer hover:bg-surface-alt/30 transition-colors"
+                    className="week-hour-slot"
                     style={{ height: HOUR_HEIGHT }}
                     onClick={() => onClickSlot(day, hour)}
                   />
@@ -189,8 +180,7 @@ export function WeekView({ onClickEvent, onClickSlot }: WeekViewProps) {
                       whileHover={{ scale: 1.02, zIndex: 20 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => onClickEvent(event)}
-                      className="absolute left-1 right-1 rounded-lg px-2 py-1 cursor-pointer
-                                 overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                      className="week-event-block"
                       style={{
                         top,
                         height,
@@ -198,11 +188,11 @@ export function WeekView({ onClickEvent, onClickSlot }: WeekViewProps) {
                         borderLeft: `3px solid ${bgColor}`,
                       }}
                     >
-                      <span className="text-[11px] font-medium block truncate" style={{ color: bgColor }}>
+                      <span className="week-event-title" style={{ color: bgColor }}>
                         {event.title}
                       </span>
                       {height > 40 && (
-                        <span className="text-[10px] opacity-70 font-mono block" style={{ color: bgColor }}>
+                        <span className="week-event-time" style={{ color: bgColor }}>
                           {format(parseISO(event.start_datetime), 'HH:mm')} -{' '}
                           {format(parseISO(event.end_datetime), 'HH:mm')}
                         </span>
@@ -237,12 +227,12 @@ function NowLine() {
 
   return (
     <div
-      className="absolute left-0 right-0 z-10 pointer-events-none"
+      className="week-now-line"
       style={{ top }}
     >
-      <div className="relative flex items-center">
-        <div className="w-2.5 h-2.5 rounded-full bg-danger -ml-1 shadow-sm" />
-        <div className="flex-1 h-[2px] bg-danger/70" />
+      <div className="week-now-line-inner">
+        <div className="week-now-dot" />
+        <div className="week-now-bar" />
       </div>
     </div>
   )
@@ -268,18 +258,17 @@ function AllDaySection({
   if (!hasAny) return null
 
   return (
-    <div className="grid grid-cols-[60px_repeat(7,1fr)] border-b border-border">
-      <div className="flex items-center justify-end pr-3 text-[10px] text-text-muted font-medium">
+    <div className="week-allday">
+      <div className="week-allday-label">
         Todo el día
       </div>
       {allDayEvents.map((events, i) => (
-        <div key={i} className="border-l border-border p-1 flex flex-col gap-0.5 min-h-[32px]">
+        <div key={i} className="week-allday-cell">
           {events.map((event) => (
             <button
               key={event.id}
               onClick={() => onClickEvent(event)}
-              className="text-[10px] font-medium px-1.5 py-0.5 rounded truncate text-left cursor-pointer
-                         hover:opacity-80 transition-opacity"
+              className="week-allday-event"
               style={{
                 backgroundColor: `${event.color || 'var(--color-primary)'}25`,
                 color: event.color || 'var(--color-primary)',

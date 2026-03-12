@@ -155,26 +155,26 @@ export function EventModal({
       title={isEditing ? 'Editar evento' : 'Nuevo evento'}
       size="lg"
     >
-      <div className="flex flex-col gap-4">
+      <div className="eventmodal-form">
         {/* Title */}
         <Input
           placeholder="Título del evento"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           autoFocus
-          className="text-base font-medium"
+          className="eventmodal-input-base"
         />
 
         {/* All day toggle */}
-        <div className="flex items-center justify-between">
-          <span className="text-[13px] font-medium text-text-secondary">Todo el día</span>
+        <div className="eventmodal-allday-row">
+          <span className="eventmodal-allday-label">Todo el día</span>
           <Toggle checked={isAllDay} onChange={setIsAllDay} />
         </div>
 
         {/* Date/Time row */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[12px] font-display font-medium text-text-muted flex items-center gap-1.5">
+        <div className="eventmodal-datetime-grid">
+          <div className="eventmodal-field">
+            <label className="eventmodal-label">
               <Calendar size={12} /> Inicio
             </label>
             <input
@@ -184,28 +184,24 @@ export function EventModal({
                 setStartDate(e.target.value)
                 if (e.target.value > endDate) setEndDate(e.target.value)
               }}
-              className="px-3 py-2 rounded-xl border border-border bg-surface-solid/50
-                         text-text-primary text-[13px] focus:border-border-focus
-                         focus:ring-2 focus:ring-border-focus/15 outline-none transition-all shadow-inner"
+              className="eventmodal-input"
             />
           </div>
           {!isAllDay && (
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[12px] font-display font-medium text-text-muted flex items-center gap-1.5">
+            <div className="eventmodal-field">
+              <label className="eventmodal-label">
                 <Clock size={12} /> Hora inicio
               </label>
               <input
                 type="time"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
-                className="px-3 py-2 rounded-xl border border-border bg-surface-solid/50
-                           text-text-primary text-[13px] font-mono focus:border-border-focus
-                           focus:ring-2 focus:ring-border-focus/15 outline-none transition-all shadow-inner"
+                className="eventmodal-input eventmodal-input-mono"
               />
             </div>
           )}
-          <div className="flex flex-col gap-1.5">
-            <label className="text-[12px] font-display font-medium text-text-muted flex items-center gap-1.5">
+          <div className="eventmodal-field">
+            <label className="eventmodal-label">
               <Calendar size={12} /> Fin
             </label>
             <input
@@ -213,31 +209,27 @@ export function EventModal({
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
               min={startDate}
-              className="px-3 py-2 rounded-xl border border-border bg-surface-solid/50
-                         text-text-primary text-[13px] focus:border-border-focus
-                         focus:ring-2 focus:ring-border-focus/15 outline-none transition-all shadow-inner"
+              className="eventmodal-input"
             />
           </div>
           {!isAllDay && (
-            <div className="flex flex-col gap-1.5">
-              <label className="text-[12px] font-display font-medium text-text-muted flex items-center gap-1.5">
+            <div className="eventmodal-field">
+              <label className="eventmodal-label">
                 <Clock size={12} /> Hora fin
               </label>
               <input
                 type="time"
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
-                className="px-3 py-2 rounded-xl border border-border bg-surface-solid/50
-                           text-text-primary text-[13px] font-mono focus:border-border-focus
-                           focus:ring-2 focus:ring-border-focus/15 outline-none transition-all shadow-inner"
+                className="eventmodal-input eventmodal-input-mono"
               />
             </div>
           )}
         </div>
 
         {/* Location */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[12px] font-display font-medium text-text-muted flex items-center gap-1.5">
+        <div className="eventmodal-field">
+          <label className="eventmodal-label">
             <MapPin size={12} /> Ubicación
           </label>
           <Input
@@ -248,8 +240,8 @@ export function EventModal({
         </div>
 
         {/* Description */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[12px] font-display font-medium text-text-muted flex items-center gap-1.5">
+        <div className="eventmodal-field">
+          <label className="eventmodal-label">
             <AlignLeft size={12} /> Descripción
           </label>
           <textarea
@@ -257,32 +249,28 @@ export function EventModal({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={3}
-            className="px-3.5 py-2.5 rounded-xl border border-border bg-surface-solid/50
-                       text-text-primary text-[13px] placeholder:text-text-muted/60
-                       focus:border-border-focus focus:ring-2 focus:ring-border-focus/15
-                       outline-none transition-all resize-none shadow-inner"
+            className="eventmodal-textarea"
           />
         </div>
 
         {/* Color picker */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-[12px] font-display font-medium text-text-muted flex items-center gap-1.5">
+        <div className="eventmodal-field">
+          <label className="eventmodal-label">
             <Palette size={12} /> Color
           </label>
-          <div className="flex gap-2">
+          <div className="eventmodal-colors">
             {EVENT_COLORS.map((c) => (
               <motion.button
                 key={c.value}
                 whileHover={{ scale: 1.15 }}
                 whileTap={{ scale: 0.9 }}
                 onClick={() => setColor(c.value)}
-                className={`
-                  w-7 h-7 rounded-full cursor-pointer transition-all duration-150
-                  ${color === c.value ? 'ring-2 ring-offset-2 ring-offset-surface-solid scale-110' : 'hover:opacity-80'}
-                `}
+                className={`eventmodal-color-swatch ${
+                  color === c.value ? 'eventmodal-color-swatch-selected' : ''
+                }`}
                 style={{
                   backgroundColor: c.value,
-                  ...(color === c.value ? { '--tw-ring-color': c.value } as React.CSSProperties : {}),
+                  ...(color === c.value ? { color: c.value } as React.CSSProperties : {}),
                 }}
                 title={c.label}
               />
@@ -299,7 +287,7 @@ export function EventModal({
         />
 
         {/* Actions */}
-        <div className="flex items-center justify-between pt-2 border-t border-border">
+        <div className="eventmodal-actions">
           {isEditing ? (
             <Button
               variant="danger"
@@ -313,7 +301,7 @@ export function EventModal({
             <div />
           )}
 
-          <div className="flex gap-2">
+          <div className="eventmodal-actions-right">
             <Button variant="ghost" size="sm" onClick={onClose}>
               Cancelar
             </Button>
