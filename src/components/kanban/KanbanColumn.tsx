@@ -1,11 +1,11 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, memo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { MoreHorizontal, Plus, Pencil, Trash2, CornerDownLeft } from 'lucide-react'
+import { MoreHorizontal, Plus, Pencil, Trash2, CornerDownLeft, Calendar, Flag } from 'lucide-react'
 import { KanbanCard } from './KanbanCard'
 import { useTaskStore } from '../../stores/useTaskStore'
-import type { Task, Tag, KanbanColumn as KanbanColumnType } from '../../types'
+import type { Task, Tag, Priority, KanbanColumn as KanbanColumnType } from '../../types'
 
 interface KanbanColumnProps {
   column: KanbanColumnType
@@ -15,10 +15,10 @@ interface KanbanColumnProps {
   onCardClick: (task: Task) => void
   onRenameColumn: (id: string, name: string) => void
   onDeleteColumn: (id: string) => void
-  onQuickAdd: (columnId: string, title: string) => void
+  onQuickAdd: (columnId: string, title: string, priority?: Priority, dueDate?: string) => void
 }
 
-export function KanbanColumn({
+export const KanbanColumn = memo(function KanbanColumn({
   column,
   tasks,
   taskTags,
@@ -34,6 +34,9 @@ export function KanbanColumn({
   const [editName, setEditName] = useState(column.name)
   const [quickAddOpen, setQuickAddOpen] = useState(false)
   const [quickAddText, setQuickAddText] = useState('')
+  const [quickAddPriority, setQuickAddPriority] = useState<Priority>('media')
+  const [quickAddDate, setQuickAddDate] = useState('')
+  const [showQuickExtras, setShowQuickExtras] = useState(false)
   const quickAddRef = useRef<HTMLInputElement>(null)
 
   const { setNodeRef, isOver } = useDroppable({ id: column.id })
@@ -49,8 +52,11 @@ export function KanbanColumn({
 
   const handleQuickAdd = () => {
     if (!quickAddText.trim()) return
-    onQuickAdd(column.id, quickAddText.trim())
+    onQuickAdd(column.id, quickAddText.trim(), quickAddPriority, quickAddDate || undefined)
     setQuickAddText('')
+    setQuickAddPriority('media')
+    setQuickAddDate('')
+    setShowQuickExtras(false)
     quickAddRef.current?.focus()
   }
 
@@ -133,14 +139,20 @@ export function KanbanColumn({
       {/* Droppable card area */}
       <div ref={setNodeRef} className="kcol__cards">
         <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
-          <AnimatePresence mode="popLayout">
+          <AnimatePresence initial={false}>
             {tasks.map((task) => (
               <motion.div
                 key={task.id}
-                initial={{ opacity: 0, y: -6, scale: 0.97 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
+                layout
+                layoutId={task.id}
+                initial={{ opacity: 0, scale: 0.95, y: 8 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, transition: { duration: 0.15 } }}
-                transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
+                transition={{
+                  layout: { type: 'spring', stiffness: 350, damping: 30 },
+                  opacity: { duration: 0.2 },
+                  scale: { duration: 0.2 },
+                }}
               >
                 <KanbanCard
                   task={task}
@@ -162,16 +174,19 @@ export function KanbanColumn({
         )}
 
         {/* Drop indicator */}
-        {isOver && tasks.length === 0 && (
-          <motion.div
-            className="kcol__drop-zone"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-          >
-            <span>Soltar aquí</span>
-          </motion.div>
-        )}
+        <AnimatePresence>
+          {isOver && tasks.length === 0 && (
+            <motion.div
+              className="kcol__drop-zone"
+              initial={{ opacity: 0, scale: 0.92, y: 4 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -4 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+            >
+              <span>Soltar aquí</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Inline quick-add */}
@@ -181,31 +196,59 @@ export function KanbanColumn({
             <motion.div
               key="input"
               className="kcol__quickadd"
-              initial={{ opacity: 0, y: 4 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 4 }}
-              transition={{ duration: 0.15 }}
+              initial={{ opacity: 0, y: 6, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 6, scale: 0.97 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 28 }}
             >
-              <input
-                ref={quickAddRef}
-                value={quickAddText}
-                onChange={(e) => setQuickAddText(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleQuickAdd()
-                  if (e.key === 'Escape') { setQuickAddOpen(false); setQuickAddText('') }
-                }}
-                onBlur={() => {
-                  if (!quickAddText.trim()) {
-                    setQuickAddOpen(false)
-                    setQuickAddText('')
-                  }
-                }}
-                placeholder="Nueva tarea..."
-                className="kcol__quickadd-input"
-              />
-              <span className="kcol__quickadd-hint">
-                <CornerDownLeft size={10} />
-              </span>
+              <div className="kcol__quickadd-top">
+                <input
+                  ref={quickAddRef}
+                  value={quickAddText}
+                  onChange={(e) => setQuickAddText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleQuickAdd()
+                    if (e.key === 'Escape') { setQuickAddOpen(false); setQuickAddText(''); setShowQuickExtras(false) }
+                  }}
+                  placeholder="Nueva tarea..."
+                  className="kcol__quickadd-input"
+                />
+              </div>
+              <div className="kcol__quickadd-toolbar">
+                {/* Priority selector */}
+                <div className="kcol__quickadd-priorities">
+                  {(['baja', 'media', 'alta'] as Priority[]).map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => setQuickAddPriority(p)}
+                      className={`kcol__quickadd-priority${quickAddPriority === p ? ' kcol__quickadd-priority--active' : ''}`}
+                      data-priority={p}
+                      title={p.charAt(0).toUpperCase() + p.slice(1)}
+                    >
+                      <Flag size={11} />
+                    </button>
+                  ))}
+                </div>
+                {/* Date */}
+                <label className="kcol__quickadd-date-btn" title="Fecha límite">
+                  <Calendar size={12} />
+                  <input
+                    type="date"
+                    value={quickAddDate}
+                    onChange={(e) => setQuickAddDate(e.target.value)}
+                    className="kcol__quickadd-date-input"
+                  />
+                  {quickAddDate && (
+                    <span className="kcol__quickadd-date-label">
+                      {new Date(quickAddDate + 'T12:00:00').toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })}
+                    </span>
+                  )}
+                </label>
+                <div className="kcol__quickadd-spacer" />
+                <span className="kcol__quickadd-hint">
+                  <CornerDownLeft size={10} />
+                </span>
+              </div>
             </motion.div>
           ) : (
             <motion.button
@@ -225,4 +268,4 @@ export function KanbanColumn({
       </div>
     </div>
   )
-}
+})

@@ -70,6 +70,7 @@ export const events = sqliteTable('events', {
   isAllDay: integer('is_all_day', { mode: 'boolean' }).default(false),
   color: text('color'),
   location: text('location'),
+  eventType: text('event_type', { enum: ['evento', 'parcial', 'reunion', 'entrega', 'hito'] }).default('evento'),
   projectId: text('project_id').references(() => projects.id, { onDelete: 'set null' }),
   isRecurring: integer('is_recurring', { mode: 'boolean' }).default(false),
   recurrenceRule: text('recurrence_rule'),
@@ -128,5 +129,72 @@ export const templates = sqliteTable('templates', {
   name: text('name').notNull(),
   description: text('description'),
   structure: text('structure').notNull(),
+  createdAt: text('created_at').default('CURRENT_TIMESTAMP'),
+})
+
+export const semesters = sqliteTable('semesters', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  startDate: text('start_date').notNull(),
+  endDate: text('end_date').notNull(),
+  isActive: integer('is_active', { mode: 'boolean' }).default(true),
+  createdAt: text('created_at').default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').default('CURRENT_TIMESTAMP'),
+})
+
+export const subjects = sqliteTable('subjects', {
+  id: text('id').primaryKey(),
+  semesterId: text('semester_id').references(() => semesters.id, { onDelete: 'cascade' }).notNull(),
+  name: text('name').notNull(),
+  color: text('color').default('#01A7C2'),
+  professor: text('professor'),
+  description: text('description'),
+  schedule: text('schedule'),
+  attendanceThreshold: real('attendance_threshold').default(75),
+  approvalThreshold: real('approval_threshold').default(60),
+  finalGrade: real('final_grade'),
+  finalStatus: text('final_status', { enum: ['en_curso', 'aprobada', 'desaprobada', 'libre'] }).default('en_curso'),
+  sortOrder: integer('sort_order').default(0),
+  createdAt: text('created_at').default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').default('CURRENT_TIMESTAMP'),
+})
+
+export const subjectProjects = sqliteTable('subject_projects', {
+  subjectId: text('subject_id').references(() => subjects.id, { onDelete: 'cascade' }).notNull(),
+  projectId: text('project_id').references(() => projects.id, { onDelete: 'cascade' }).notNull(),
+})
+
+export const classInstances = sqliteTable('class_instances', {
+  id: text('id').primaryKey(),
+  subjectId: text('subject_id').references(() => subjects.id, { onDelete: 'cascade' }).notNull(),
+  date: text('date').notNull(),
+  startTime: text('start_time'),
+  endTime: text('end_time'),
+  status: text('status', { enum: ['pendiente', 'asisti', 'falte', 'cancelada'] }).default('pendiente'),
+  isManual: integer('is_manual', { mode: 'boolean' }).default(false),
+  note: text('note'),
+  createdAt: text('created_at').default('CURRENT_TIMESTAMP'),
+  updatedAt: text('updated_at').default('CURRENT_TIMESTAMP'),
+})
+
+export const gradeCategories = sqliteTable('grade_categories', {
+  id: text('id').primaryKey(),
+  subjectId: text('subject_id').references(() => subjects.id, { onDelete: 'cascade' }).notNull(),
+  name: text('name').notNull(),
+  weight: real('weight').notNull(),
+  sortOrder: integer('sort_order').default(0),
+  createdAt: text('created_at').default('CURRENT_TIMESTAMP'),
+})
+
+export const grades = sqliteTable('grades', {
+  id: text('id').primaryKey(),
+  categoryId: text('category_id').references(() => gradeCategories.id, { onDelete: 'cascade' }).notNull(),
+  subjectId: text('subject_id').references(() => subjects.id, { onDelete: 'cascade' }).notNull(),
+  name: text('name').notNull(),
+  score: real('score'),
+  maxScore: real('max_score').default(10),
+  date: text('date'),
+  note: text('note'),
+  sortOrder: integer('sort_order').default(0),
   createdAt: text('created_at').default('CURRENT_TIMESTAMP'),
 })

@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { dbQuery, dbInsert, getSetting, setSetting } from '../lib/ipc'
+import { localDateStr } from '../lib/dates'
 import type { PomodoroSession, Task } from '../types'
 
 function uuid(): string {
@@ -108,7 +109,7 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
   },
 
   loadStats: async () => {
-    const today = new Date().toISOString().split('T')[0]
+    const today = localDateStr()
 
     // Sessions completed today
     const todayRows = await dbQuery<{ cnt: number }>(
@@ -131,7 +132,7 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
     const checkDate = new Date()
     // eslint-disable-next-line no-constant-condition
     while (true) {
-      const dateStr = checkDate.toISOString().split('T')[0]
+      const dateStr = localDateStr(checkDate)
       const rows = await dbQuery<{ cnt: number }>(
         `SELECT COUNT(*) as cnt FROM pomodoro_sessions
          WHERE was_completed = 1 AND date(started_at) = ?`,
@@ -154,7 +155,7 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
     for (let i = 6; i >= 0; i--) {
       const d = new Date(today)
       d.setDate(d.getDate() - i)
-      const dateStr = d.toISOString().split('T')[0]
+      const dateStr = localDateStr(d)
       const rows = await dbQuery<{ cnt: number }>(
         `SELECT COUNT(*) as cnt FROM pomodoro_sessions
          WHERE was_completed = 1 AND date(started_at) = ?`,
@@ -232,6 +233,13 @@ export const usePomodoroStore = create<PomodoroState>((set, get) => ({
       currentSessionId,
       currentSessionStart,
     } = get()
+
+    // Send native notification
+    try {
+      await window.nido.notifications.sendPomodoro(phase)
+    } catch {
+      // Notifications not available
+    }
 
     // Play sound
     if (soundEnabled) {

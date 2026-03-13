@@ -22,6 +22,7 @@ export function initDatabase(): Database.Database {
   db.pragma('foreign_keys = ON')
 
   createTables(db)
+  runMigrations(db)
 
   return db
 }
@@ -99,6 +100,7 @@ function createTables(db: Database.Database) {
       is_all_day INTEGER DEFAULT 0,
       color TEXT,
       location TEXT,
+      event_type TEXT DEFAULT 'evento',
       project_id TEXT REFERENCES projects(id) ON DELETE SET NULL,
       is_recurring INTEGER DEFAULT 0,
       recurrence_rule TEXT,
@@ -159,7 +161,83 @@ function createTables(db: Database.Database) {
       structure TEXT NOT NULL,
       created_at TEXT DEFAULT (datetime('now'))
     );
+
+    CREATE TABLE IF NOT EXISTS semesters (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      start_date TEXT NOT NULL,
+      end_date TEXT NOT NULL,
+      is_active INTEGER DEFAULT 1,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS subjects (
+      id TEXT PRIMARY KEY,
+      semester_id TEXT NOT NULL REFERENCES semesters(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      color TEXT DEFAULT '#01A7C2',
+      professor TEXT,
+      description TEXT,
+      schedule TEXT,
+      attendance_threshold REAL DEFAULT 75,
+      approval_threshold REAL DEFAULT 60,
+      final_grade REAL,
+      final_status TEXT CHECK(final_status IN ('en_curso', 'aprobada', 'desaprobada', 'libre')) DEFAULT 'en_curso',
+      sort_order INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS subject_projects (
+      subject_id TEXT NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+      project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      PRIMARY KEY (subject_id, project_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS class_instances (
+      id TEXT PRIMARY KEY,
+      subject_id TEXT NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+      date TEXT NOT NULL,
+      start_time TEXT,
+      end_time TEXT,
+      status TEXT CHECK(status IN ('pendiente', 'asisti', 'falte', 'cancelada')) DEFAULT 'pendiente',
+      is_manual INTEGER DEFAULT 0,
+      note TEXT,
+      created_at TEXT DEFAULT (datetime('now')),
+      updated_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS grade_categories (
+      id TEXT PRIMARY KEY,
+      subject_id TEXT NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      weight REAL NOT NULL,
+      sort_order INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS grades (
+      id TEXT PRIMARY KEY,
+      category_id TEXT NOT NULL REFERENCES grade_categories(id) ON DELETE CASCADE,
+      subject_id TEXT NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      score REAL,
+      max_score REAL DEFAULT 10,
+      date TEXT,
+      note TEXT,
+      sort_order INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
   `)
+}
+
+function runMigrations(db: Database.Database) {
+  try {
+    db.exec(`ALTER TABLE events ADD COLUMN event_type TEXT DEFAULT 'evento'`)
+  } catch {
+    // Column already exists
+  }
 }
 
 export function getDatabase(): Database.Database {

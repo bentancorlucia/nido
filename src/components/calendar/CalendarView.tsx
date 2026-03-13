@@ -10,8 +10,9 @@ import { WeekView } from './WeekView'
 import { YearView } from './YearView'
 import { SemesterView } from './SemesterView'
 import { EventModal } from './EventModal'
+import { QuickEventPopover } from './QuickEventPopover'
 import { FadeIn } from '../../lib/animations'
-import type { CalendarEvent } from '../../types'
+import type { CalendarEvent, EventType } from '../../types'
 
 const VIEW_TABS: { id: CalendarViewType; label: string; icon: typeof Calendar }[] = [
   { id: 'month', label: 'Mes', icon: CalendarDays },
@@ -25,10 +26,21 @@ export function CalendarPage() {
   const { loadProjects } = useProjectStore()
   const { loadTasks } = useTaskStore()
 
+  // Full modal state
   const [modalOpen, setModalOpen] = useState(false)
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null)
   const [defaultDate, setDefaultDate] = useState<Date | null>(null)
   const [defaultHour, setDefaultHour] = useState<number | null>(null)
+  const [defaultEndHour, setDefaultEndHour] = useState<number | null>(null)
+  const [defaultTitle, setDefaultTitle] = useState<string | undefined>(undefined)
+  const [defaultEventType, setDefaultEventType] = useState<EventType | undefined>(undefined)
+
+  // Quick popover state
+  const [popoverOpen, setPopoverOpen] = useState(false)
+  const [popoverDate, setPopoverDate] = useState<Date | null>(null)
+  const [popoverHour, setPopoverHour] = useState<number | null>(null)
+  const [popoverEndHour, setPopoverEndHour] = useState<number | null>(null)
+  const [popoverAnchor, setPopoverAnchor] = useState<{ top: number; left: number } | null>(null)
 
   useEffect(() => {
     loadEvents()
@@ -37,23 +49,56 @@ export function CalendarPage() {
   }, [loadEvents, loadProjects, loadTasks])
 
   const handleClickEvent = useCallback((event: CalendarEvent) => {
+    setPopoverOpen(false)
     setEditingEvent(event)
     setDefaultDate(null)
     setDefaultHour(null)
+    setDefaultEndHour(null)
+    setDefaultTitle(undefined)
+    setDefaultEventType(undefined)
     setModalOpen(true)
   }, [])
 
+  // Month/Semester day click → open full modal directly
   const handleClickDay = useCallback((date: Date) => {
+    setPopoverOpen(false)
     setEditingEvent(null)
     setDefaultDate(date)
     setDefaultHour(null)
+    setDefaultEndHour(null)
+    setDefaultTitle(undefined)
+    setDefaultEventType(undefined)
     setModalOpen(true)
   }, [])
 
+  // Week view single slot click → open quick popover
+  const handleSlotClick = useCallback((date: Date, hour: number, anchorPos: { top: number; left: number }) => {
+    setPopoverDate(date)
+    setPopoverHour(hour)
+    setPopoverEndHour(hour + 1)
+    setPopoverAnchor(anchorPos)
+    setPopoverOpen(true)
+  }, [])
+
+  // Week view drag-create → open quick popover with range
+  const handleDragCreateSlot = useCallback((date: Date, startHour: number, endHour: number) => {
+    setPopoverDate(date)
+    setPopoverHour(startHour)
+    setPopoverEndHour(endHour)
+    // Center the popover roughly
+    setPopoverAnchor({ top: window.innerHeight / 2 - 100, left: window.innerWidth / 2 - 160 })
+    setPopoverOpen(true)
+  }, [])
+
+  // Fallback for legacy onClickSlot (opens full modal)
   const handleClickSlot = useCallback((date: Date, hour: number) => {
+    setPopoverOpen(false)
     setEditingEvent(null)
     setDefaultDate(date)
     setDefaultHour(hour)
+    setDefaultEndHour(null)
+    setDefaultTitle(undefined)
+    setDefaultEventType(undefined)
     setModalOpen(true)
   }, [])
 
@@ -67,7 +112,26 @@ export function CalendarPage() {
     setEditingEvent(null)
     setDefaultDate(null)
     setDefaultHour(null)
+    setDefaultEndHour(null)
+    setDefaultTitle(undefined)
+    setDefaultEventType(undefined)
   }, [])
+
+  const handleClosePopover = useCallback(() => {
+    setPopoverOpen(false)
+  }, [])
+
+  // Open full modal from popover (transfer context)
+  const handlePopoverToModal = useCallback(() => {
+    setPopoverOpen(false)
+    setEditingEvent(null)
+    setDefaultDate(popoverDate)
+    setDefaultHour(popoverHour)
+    setDefaultEndHour(popoverEndHour)
+    setDefaultTitle(undefined)
+    setDefaultEventType(undefined)
+    setModalOpen(true)
+  }, [popoverDate, popoverHour, popoverEndHour])
 
   return (
     <div className="cal-root">
@@ -108,9 +172,13 @@ export function CalendarPage() {
             whileHover={{ scale: 1.05, y: -1 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => {
+              setPopoverOpen(false)
               setEditingEvent(null)
               setDefaultDate(new Date())
               setDefaultHour(null)
+              setDefaultEndHour(null)
+              setDefaultTitle(undefined)
+              setDefaultEventType(undefined)
               setModalOpen(true)
             }}
             className="cal-new-event-btn"
@@ -135,7 +203,12 @@ export function CalendarPage() {
             <MonthView onClickEvent={handleClickEvent} onClickDay={handleClickDay} />
           )}
           {view === 'week' && (
-            <WeekView onClickEvent={handleClickEvent} onClickSlot={handleClickSlot} />
+            <WeekView
+              onClickEvent={handleClickEvent}
+              onClickSlot={handleClickSlot}
+              onSlotClick={handleSlotClick}
+              onDragCreateSlot={handleDragCreateSlot}
+            />
           )}
           {view === 'year' && (
             <YearView onClickMonth={handleClickMonth} />
@@ -146,13 +219,27 @@ export function CalendarPage() {
         </motion.div>
       </AnimatePresence>
 
-      {/* Event modal */}
+      {/* Quick event popover */}
+      <QuickEventPopover
+        isOpen={popoverOpen}
+        onClose={handleClosePopover}
+        onOpenFullModal={handlePopoverToModal}
+        date={popoverDate}
+        hour={popoverHour}
+        endHour={popoverEndHour}
+        anchorPosition={popoverAnchor}
+      />
+
+      {/* Full event modal */}
       <EventModal
         isOpen={modalOpen}
         onClose={handleCloseModal}
         editingEvent={editingEvent}
         defaultDate={defaultDate}
         defaultHour={defaultHour}
+        defaultEndHour={defaultEndHour}
+        defaultTitle={defaultTitle}
+        defaultEventType={defaultEventType}
       />
     </div>
   )

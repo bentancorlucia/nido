@@ -1,0 +1,67 @@
+appId: com.nido.app
+productName: Nido
+copyright: Copyright © 2026
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - out/**/*
+  - "!node_modules/**/{*.md,LICENSE,license,CHANGELOG*,HISTORY*}"
+
+extraResources:
+  - from: node_modules/better-sqlite3/build
+    to: better-sqlite3/build
+    filter:
+      - "**/*"
+
+mac:
+  target:
+    - target: dmg
+      arch:
+        - arm64
+    - target: zip
+      arch:
+        - arm64
+  category: public.app-category.productivity
+  darkModeSupport: true
+  hardenedRuntime: true
+  icon: build/icon.icns
+
+dmg:
+  title: Nido
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: build/icon.ico
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
+
+linux:
+  target:
+    - target: AppImage
+      arch:
+        - x64
+  category: Office
+  icon: build/icon.png
+
+asar: true
+
+# Rebuild native modules for the target platform
+npmRebuild: true
+nodeGypRebuild: false

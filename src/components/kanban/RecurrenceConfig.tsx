@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { Repeat, X } from 'lucide-react'
+import { Repeat } from 'lucide-react'
 import { Toggle } from '../ui/Toggle'
 import { buildRecurrenceRule, recurrenceLabel } from '../../lib/recurrence'
 import type { Task } from '../../types'
 
-type RecurrenceType = 'daily' | 'weekly' | 'monthly' | 'yearly' | 'weekdays' | 'custom'
+type IntervalUnit = 'day' | 'week' | 'month' | 'year'
+type EndMode = 'never' | 'on' | 'after'
 
 interface RecurrenceConfigProps {
   task: Task
@@ -13,121 +14,141 @@ interface RecurrenceConfigProps {
 }
 
 const WEEK_DAYS = [
-  { label: 'D', value: 0 },
-  { label: 'L', value: 1 },
-  { label: 'M', value: 2 },
-  { label: 'M', value: 3 },
-  { label: 'J', value: 4 },
-  { label: 'V', value: 5 },
-  { label: 'S', value: 6 },
+  { label: 'Do', value: 0 },
+  { label: 'Lu', value: 1 },
+  { label: 'Ma', value: 2 },
+  { label: 'Mi', value: 3 },
+  { label: 'Ju', value: 4 },
+  { label: 'Vi', value: 5 },
+  { label: 'Sa', value: 6 },
 ]
 
-function parseExistingRule(rule: string | null): {
-  type: RecurrenceType
+const UNIT_OPTIONS: { value: IntervalUnit; label: string; labelPlural: string }[] = [
+  { value: 'day', label: 'día', labelPlural: 'días' },
+  { value: 'week', label: 'semana', labelPlural: 'semanas' },
+  { value: 'month', label: 'mes', labelPlural: 'meses' },
+  { value: 'year', label: 'año', labelPlural: 'años' },
+]
+
+function parseExistingRule(rule: string | null, endDate: string | null): {
+  interval: number
+  unit: IntervalUnit
   weekDays: number[]
   monthDay: number
-  customInterval: number
-  customUnit: 'days' | 'weeks'
+  endMode: EndMode
+  endDateVal: string
+  afterCount: number
 } {
-  const defaults = { type: 'daily' as RecurrenceType, weekDays: [] as number[], monthDay: 1, customInterval: 2, customUnit: 'days' as const }
+  const defaults = {
+    interval: 1,
+    unit: 'week' as IntervalUnit,
+    weekDays: [] as number[],
+    monthDay: 1,
+    endMode: 'never' as EndMode,
+    endDateVal: '',
+    afterCount: 4,
+  }
+
+  if (endDate) {
+    defaults.endMode = 'on'
+    defaults.endDateVal = endDate
+  }
+
   if (!rule) return defaults
 
   const [t, param] = rule.split(':')
   switch (t) {
-    case 'daily': return { ...defaults, type: 'daily' }
-    case 'weekdays': return { ...defaults, type: 'weekdays' }
-    case 'weekly': return { ...defaults, type: 'weekly', weekDays: param ? param.split(',').map(Number) : [] }
-    case 'monthly': return { ...defaults, type: 'monthly', monthDay: param ? parseInt(param) : 1 }
-    case 'yearly': return { ...defaults, type: 'yearly' }
-    case 'custom': {
-      const match = param?.match(/every_(\d+)_(days|weeks)/)
+    case 'daily':
+      return { ...defaults, interval: 1, unit: 'day' }
+    case 'weekdays':
+      return { ...defaults, interval: 1, unit: 'week', weekDays: [1, 2, 3, 4, 5] }
+    case 'weekly':
       return {
         ...defaults,
-        type: 'custom',
-        customInterval: match ? parseInt(match[1]) : 2,
-        customUnit: (match?.[2] as 'days' | 'weeks') ?? 'days',
+        interval: 1,
+        unit: 'week',
+        weekDays: param ? param.split(',').map(Number) : [],
+      }
+    case 'monthly':
+      return { ...defaults, interval: 1, unit: 'month', monthDay: param ? parseInt(param) : 1 }
+    case 'yearly':
+      return { ...defaults, interval: 1, unit: 'year' }
+    case 'custom': {
+      const match = param?.match(/every_(\d+)_(days|weeks|months|years)/)
+      if (!match) return defaults
+      const unitMap: Record<string, IntervalUnit> = { days: 'day', weeks: 'week', months: 'month', years: 'year' }
+      return {
+        ...defaults,
+        interval: parseInt(match[1]),
+        unit: unitMap[match[2]] ?? 'day',
       }
     }
-    default: return defaults
+    default:
+      return defaults
   }
 }
 
-const miniInput: React.CSSProperties = {
-  width: 56,
-  padding: '6px 8px',
-  borderRadius: 8,
-  border: '1.5px solid var(--color-border)',
-  backgroundColor: 'var(--color-surface-solid)',
-  fontSize: 12,
-  fontFamily: 'var(--font-mono)',
-  fontWeight: 500,
-  color: 'var(--color-text-primary)',
-  outline: 'none',
-  textAlign: 'center',
-  boxShadow: 'var(--shadow-inner)',
-}
-
-const miniSelect: React.CSSProperties = {
-  padding: '6px 10px',
-  borderRadius: 8,
-  border: '1.5px solid var(--color-border)',
-  backgroundColor: 'var(--color-surface-solid)',
-  fontSize: 12,
-  fontWeight: 500,
-  fontFamily: 'var(--font-sans)',
-  color: 'var(--color-text-primary)',
-  outline: 'none',
-  cursor: 'pointer',
-  boxShadow: 'var(--shadow-inner)',
+function buildRule(interval: number, unit: IntervalUnit, weekDays: number[], monthDay: number): string {
+  if (interval === 1) {
+    switch (unit) {
+      case 'day': return buildRecurrenceRule('daily')
+      case 'week': return buildRecurrenceRule('weekly', { weekDays })
+      case 'month': return buildRecurrenceRule('monthly', { monthDay })
+      case 'year': return buildRecurrenceRule('yearly')
+    }
+  }
+  const unitMap: Record<IntervalUnit, 'days' | 'weeks' | 'months' | 'years'> = {
+    day: 'days', week: 'weeks', month: 'months', year: 'years',
+  }
+  return buildRecurrenceRule('custom', { customInterval: interval, customUnit: unitMap[unit] })
 }
 
 export function RecurrenceConfig({ task, onSave }: RecurrenceConfigProps) {
   const isRecurring = task.is_recurring === 1
-  const parsed = parseExistingRule(task.recurrence_rule)
+  const parsed = parseExistingRule(task.recurrence_rule, task.recurrence_end ?? null)
 
-  const [type, setType] = useState<RecurrenceType>(parsed.type)
+  const [interval, setInterval] = useState(parsed.interval)
+  const [unit, setUnit] = useState<IntervalUnit>(parsed.unit)
   const [weekDays, setWeekDays] = useState<number[]>(parsed.weekDays)
   const [monthDay, setMonthDay] = useState(parsed.monthDay)
-  const [customInterval, setCustomInterval] = useState(parsed.customInterval)
-  const [customUnit, setCustomUnit] = useState<'days' | 'weeks'>(parsed.customUnit)
-  const [endDate, setEndDate] = useState(task.recurrence_end ?? '')
+  const [endMode, setEndMode] = useState<EndMode>(parsed.endMode)
+  const [endDateVal, setEndDateVal] = useState(parsed.endDateVal)
+  const [afterCount, setAfterCount] = useState(parsed.afterCount)
 
   const toggleRecurring = (enabled: boolean) => {
     if (enabled) {
-      const rule = buildRecurrenceRule(type, { weekDays, monthDay, customInterval, customUnit })
+      const rule = buildRule(interval, unit, weekDays, monthDay)
       onSave({
         is_recurring: 1,
         recurrence_rule: rule,
-        recurrence_end: endDate || null,
+        recurrence_end: endMode === 'on' ? endDateVal || null : null,
       })
     } else {
-      onSave({
-        is_recurring: 0,
-        recurrence_rule: null,
-        recurrence_end: null,
-      })
+      onSave({ is_recurring: 0, recurrence_rule: null, recurrence_end: null })
     }
   }
 
-  const updateRule = (newType?: RecurrenceType, opts?: Record<string, unknown>) => {
-    const t = newType ?? type
-    const wd = (opts?.weekDays as number[]) ?? weekDays
-    const md = (opts?.monthDay as number) ?? monthDay
-    const ci = (opts?.customInterval as number) ?? customInterval
-    const cu = (opts?.customUnit as 'days' | 'weeks') ?? customUnit
+  const saveRule = (
+    newInterval?: number,
+    newUnit?: IntervalUnit,
+    newWeekDays?: number[],
+    newMonthDay?: number,
+    newEndMode?: EndMode,
+    newEndDate?: string,
+  ) => {
+    const i = newInterval ?? interval
+    const u = newUnit ?? unit
+    const wd = newWeekDays ?? weekDays
+    const md = newMonthDay ?? monthDay
+    const em = newEndMode ?? endMode
+    const ed = newEndDate ?? endDateVal
 
-    const rule = buildRecurrenceRule(t, { weekDays: wd, monthDay: md, customInterval: ci, customUnit: cu })
-    onSave({ recurrence_rule: rule })
+    const rule = buildRule(i, u, wd, md)
+    onSave({
+      recurrence_rule: rule,
+      recurrence_end: em === 'on' ? ed || null : null,
+    })
   }
-
-  const typeOptions: { value: RecurrenceType; label: string }[] = [
-    { value: 'daily', label: 'Diaria' },
-    { value: 'weekly', label: 'Semanal' },
-    { value: 'monthly', label: 'Mensual' },
-    { value: 'yearly', label: 'Anual' },
-    { value: 'weekdays', label: 'D\u00edas h\u00e1biles' },
-    { value: 'custom', label: 'Personalizado' },
-  ]
 
   return (
     <div>
@@ -161,7 +182,7 @@ export function RecurrenceConfig({ task, onSave }: RecurrenceConfigProps) {
             exit={{ opacity: 0, height: 0 }}
             style={{ overflow: 'hidden' }}
           >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 14 }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 16 }}>
               {/* Current rule label */}
               {task.recurrence_rule && (
                 <p style={{
@@ -174,54 +195,93 @@ export function RecurrenceConfig({ task, onSave }: RecurrenceConfigProps) {
                 </p>
               )}
 
-              {/* Type selector */}
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {typeOptions.map((opt) => (
-                  <TypeChip
-                    key={opt.value}
-                    label={opt.label}
-                    isActive={type === opt.value}
-                    onClick={() => {
-                      setType(opt.value)
-                      updateRule(opt.value)
-                    }}
-                  />
-                ))}
+              {/* ─── Every N [unit] ─── */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={fieldLabel}>Cada</span>
+                <input
+                  type="number"
+                  value={interval}
+                  onChange={(e) => {
+                    const val = Math.max(1, parseInt(e.target.value) || 1)
+                    setInterval(val)
+                    saveRule(val)
+                  }}
+                  min={1}
+                  style={numberInput}
+                />
+                <select
+                  value={unit}
+                  onChange={(e) => {
+                    const val = e.target.value as IntervalUnit
+                    setUnit(val)
+                    saveRule(undefined, val)
+                  }}
+                  style={selectInput}
+                >
+                  {UNIT_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {interval > 1 ? opt.labelPlural : opt.label}
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              {/* Weekly: day selection */}
-              {type === 'weekly' && (
-                <div style={{ display: 'flex', gap: 6 }}>
-                  {WEEK_DAYS.map((day) => (
-                    <DayChip
-                      key={day.value}
-                      label={day.label}
-                      isActive={weekDays.includes(day.value)}
-                      onClick={() => {
-                        const next = weekDays.includes(day.value)
-                          ? weekDays.filter((d) => d !== day.value)
-                          : [...weekDays, day.value].sort()
-                        setWeekDays(next)
-                        updateRule('weekly', { weekDays: next })
-                      }}
-                    />
-                  ))}
+              {/* ─── Day of week chips (only for week unit) ─── */}
+              {unit === 'week' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={fieldLabel}>En</span>
+                  <div style={{ display: 'flex', gap: 5 }}>
+                    {WEEK_DAYS.map((day) => {
+                      const active = weekDays.includes(day.value)
+                      return (
+                        <button
+                          key={day.value}
+                          onClick={() => {
+                            const next = active
+                              ? weekDays.filter((d) => d !== day.value)
+                              : [...weekDays, day.value].sort()
+                            setWeekDays(next)
+                            saveRule(undefined, undefined, next)
+                          }}
+                          style={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: '50%',
+                            border: active ? '2px solid var(--color-primary)' : '1.5px solid var(--color-border)',
+                            cursor: 'pointer',
+                            fontSize: 11,
+                            fontWeight: 600,
+                            fontFamily: 'var(--font-sans)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            backgroundColor: active ? 'var(--color-primary-light)' : 'transparent',
+                            color: active ? 'var(--color-primary)' : 'var(--color-text-muted)',
+                            transition: 'all 150ms ease',
+                            padding: 0,
+                          }}
+                        >
+                          {day.label}
+                        </button>
+                      )
+                    })}
+                  </div>
                 </div>
               )}
 
-              {/* Monthly: day picker */}
-              {type === 'monthly' && (
+              {/* ─── Day of month (only for month unit) ─── */}
+              {unit === 'month' && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 12, color: 'var(--color-text-secondary)', fontWeight: 500 }}>D\u00eda</span>
+                  <span style={fieldLabel}>Día</span>
                   <input
                     type="number"
                     value={monthDay}
                     onChange={(e) => {
                       const val = Math.min(31, Math.max(1, parseInt(e.target.value) || 1))
                       setMonthDay(val)
-                      updateRule('monthly', { monthDay: val })
+                      saveRule(undefined, undefined, undefined, val)
                     }}
-                    style={miniInput}
+                    style={numberInput}
                     min={1}
                     max={31}
                   />
@@ -229,63 +289,73 @@ export function RecurrenceConfig({ task, onSave }: RecurrenceConfigProps) {
                 </div>
               )}
 
-              {/* Custom interval */}
-              {type === 'custom' && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 12, color: 'var(--color-text-secondary)', fontWeight: 500 }}>Cada</span>
+              {/* ─── Ends ─── */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <span style={fieldLabel}>Finaliza</span>
+
+                {/* Never */}
+                <RadioRow
+                  active={endMode === 'never'}
+                  onClick={() => {
+                    setEndMode('never')
+                    saveRule(undefined, undefined, undefined, undefined, 'never')
+                  }}
+                >
+                  <span style={radioText}>Nunca</span>
+                </RadioRow>
+
+                {/* On date */}
+                <RadioRow
+                  active={endMode === 'on'}
+                  onClick={() => {
+                    setEndMode('on')
+                    saveRule(undefined, undefined, undefined, undefined, 'on', endDateVal)
+                  }}
+                >
+                  <span style={radioText}>El</span>
+                  <input
+                    type="date"
+                    value={endDateVal}
+                    onFocus={() => {
+                      if (endMode !== 'on') {
+                        setEndMode('on')
+                        saveRule(undefined, undefined, undefined, undefined, 'on', endDateVal)
+                      }
+                    }}
+                    onChange={(e) => {
+                      setEndDateVal(e.target.value)
+                      setEndMode('on')
+                      saveRule(undefined, undefined, undefined, undefined, 'on', e.target.value)
+                    }}
+                    style={dateInput}
+                  />
+                </RadioRow>
+
+                {/* After N times */}
+                <RadioRow
+                  active={endMode === 'after'}
+                  onClick={() => {
+                    setEndMode('after')
+                    // "after" is informational — we don't persist count yet
+                  }}
+                >
+                  <span style={radioText}>Después de</span>
                   <input
                     type="number"
-                    value={customInterval}
-                    onChange={(e) => {
-                      const val = Math.max(1, parseInt(e.target.value) || 2)
-                      setCustomInterval(val)
-                      updateRule('custom', { customInterval: val })
+                    value={afterCount}
+                    onFocus={() => {
+                      if (endMode !== 'after') setEndMode('after')
                     }}
-                    style={miniInput}
+                    onChange={(e) => {
+                      const val = Math.max(1, parseInt(e.target.value) || 1)
+                      setAfterCount(val)
+                      setEndMode('after')
+                    }}
+                    style={{ ...numberInput, width: 48 }}
                     min={1}
                   />
-                  <select
-                    value={customUnit}
-                    onChange={(e) => {
-                      const val = e.target.value as 'days' | 'weeks'
-                      setCustomUnit(val)
-                      updateRule('custom', { customUnit: val })
-                    }}
-                    style={miniSelect}
-                  >
-                    <option value="days">d\u00edas</option>
-                    <option value="weeks">semanas</option>
-                  </select>
-                </div>
-              )}
-
-              {/* End date */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 11, color: 'var(--color-text-muted)', fontWeight: 500 }}>Finaliza:</span>
-                <input
-                  type="date"
-                  value={endDate}
-                  onChange={(e) => {
-                    setEndDate(e.target.value)
-                    onSave({ recurrence_end: e.target.value || null })
-                  }}
-                  style={{
-                    fontSize: 12,
-                    backgroundColor: 'transparent',
-                    outline: 'none',
-                    border: 'none',
-                    color: 'var(--color-text-primary)',
-                    fontWeight: 500,
-                    fontFamily: 'var(--font-sans)',
-                    cursor: 'pointer',
-                  }}
-                />
-                {endDate && (
-                  <ClearDateButton onClick={() => {
-                    setEndDate('')
-                    onSave({ recurrence_end: null })
-                  }} />
-                )}
+                  <span style={radioText}>veces</span>
+                </RadioRow>
               </div>
             </div>
           </motion.div>
@@ -295,84 +365,102 @@ export function RecurrenceConfig({ task, onSave }: RecurrenceConfigProps) {
   )
 }
 
-/* Local sub-components */
+/* ─── Shared styles ─── */
 
-function TypeChip({ label, isActive, onClick }: { label: string; isActive: boolean; onClick: () => void }) {
-  const [hover, setHover] = useState(false)
-  return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{
-        padding: '5px 12px',
-        borderRadius: 8,
-        border: isActive ? '1.5px solid var(--color-primary)' : '1.5px solid var(--color-border)',
-        cursor: 'pointer',
-        fontSize: 11,
-        fontWeight: isActive ? 600 : 500,
-        fontFamily: 'var(--font-sans)',
-        backgroundColor: isActive ? 'var(--color-primary-light)' : (hover ? 'var(--color-surface-alt)' : 'var(--color-surface-solid)'),
-        color: isActive ? 'var(--color-primary)' : 'var(--color-text-secondary)',
-        transition: 'all 150ms ease',
-      }}
-    >
-      {label}
-    </button>
-  )
+const fieldLabel: React.CSSProperties = {
+  fontSize: 13,
+  fontWeight: 500,
+  color: 'var(--color-text-secondary)',
+  fontFamily: 'var(--font-sans)',
+  minWidth: 36,
 }
 
-function DayChip({ label, isActive, onClick }: { label: string; isActive: boolean; onClick: () => void }) {
-  const [hover, setHover] = useState(false)
+const radioText: React.CSSProperties = {
+  fontSize: 13,
+  fontWeight: 500,
+  color: 'var(--color-text-secondary)',
+  fontFamily: 'var(--font-sans)',
+}
+
+const numberInput: React.CSSProperties = {
+  width: 52,
+  padding: '6px 8px',
+  borderRadius: 8,
+  border: '1.5px solid var(--color-border)',
+  backgroundColor: 'var(--color-surface-solid)',
+  fontSize: 13,
+  fontFamily: 'var(--font-mono)',
+  fontWeight: 500,
+  color: 'var(--color-text-primary)',
+  outline: 'none',
+  textAlign: 'center',
+}
+
+const selectInput: React.CSSProperties = {
+  padding: '6px 10px',
+  borderRadius: 8,
+  border: '1.5px solid var(--color-border)',
+  backgroundColor: 'var(--color-surface-solid)',
+  fontSize: 13,
+  fontWeight: 500,
+  fontFamily: 'var(--font-sans)',
+  color: 'var(--color-text-primary)',
+  outline: 'none',
+  cursor: 'pointer',
+}
+
+const dateInput: React.CSSProperties = {
+  padding: '5px 10px',
+  borderRadius: 8,
+  border: '1.5px solid var(--color-border)',
+  backgroundColor: 'var(--color-surface-solid)',
+  fontSize: 13,
+  fontWeight: 500,
+  fontFamily: 'var(--font-sans)',
+  color: 'var(--color-text-primary)',
+  outline: 'none',
+  cursor: 'pointer',
+}
+
+/* ─── Sub-components ─── */
+
+function RadioRow({ active, onClick, children }: {
+  active: boolean
+  onClick: () => void
+  children: React.ReactNode
+}) {
   return (
-    <button
+    <div
       onClick={onClick}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
       style={{
-        width: 30,
-        height: 30,
-        borderRadius: 8,
-        border: 'none',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 10,
         cursor: 'pointer',
-        fontSize: 11,
-        fontWeight: 600,
-        fontFamily: 'var(--font-sans)',
+        paddingLeft: 2,
+      }}
+    >
+      <div style={{
+        width: 18,
+        height: 18,
+        borderRadius: '50%',
+        border: active ? '2px solid var(--color-primary)' : '2px solid var(--color-border)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: isActive ? 'var(--color-primary)' : (hover ? 'var(--color-surface-alt)' : 'var(--color-surface-solid)'),
-        color: isActive ? 'white' : 'var(--color-text-muted)',
-        transition: 'all 150ms ease',
-        boxShadow: isActive ? '0 2px 8px rgba(1, 167, 194, 0.3)' : 'none',
-      }}
-    >
-      {label}
-    </button>
-  )
-}
-
-function ClearDateButton({ onClick }: { onClick: () => void }) {
-  const [hover, setHover] = useState(false)
-  return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
-      style={{
-        padding: 3,
-        borderRadius: 6,
-        border: 'none',
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: hover ? 'var(--color-surface-alt)' : 'transparent',
-        color: hover ? 'var(--color-text-primary)' : 'var(--color-text-muted)',
-        transition: 'all 150ms ease',
-      }}
-    >
-      <X size={11} />
-    </button>
+        flexShrink: 0,
+        transition: 'border-color 150ms ease',
+      }}>
+        {active && (
+          <div style={{
+            width: 9,
+            height: 9,
+            borderRadius: '50%',
+            backgroundColor: 'var(--color-primary)',
+          }} />
+        )}
+      </div>
+      {children}
+    </div>
   )
 }

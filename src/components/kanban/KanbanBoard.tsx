@@ -1,12 +1,15 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   DndContext,
   DragOverlay,
+  MeasuringStrategy,
+  closestCenter,
   pointerWithin,
   rectIntersection,
   PointerSensor,
   useSensor,
   useSensors,
+  defaultDropAnimationSideEffects,
   type DragStartEvent,
   type DragEndEvent,
   type DragOverEvent,
@@ -14,11 +17,13 @@ import {
 } from '@dnd-kit/core'
 import { arrayMove } from '@dnd-kit/sortable'
 import { motion, AnimatePresence } from 'framer-motion'
-import { ChevronDown, SlidersHorizontal, Kanban } from 'lucide-react'
+import { ChevronDown, SlidersHorizontal, Kanban, Calendar } from 'lucide-react'
 import { KanbanColumn } from './KanbanColumn'
 import { KanbanCard } from './KanbanCard'
 import { AddColumn } from './AddColumn'
 import { KanbanFilters } from './KanbanFilters'
+import { ProjectPicker } from './ProjectPicker'
+import { ProjectEventsPanel } from './ProjectEventsPanel'
 import { useProjectStore } from '../../stores/useProjectStore'
 import { useTaskStore } from '../../stores/useTaskStore'
 import { dbQuery } from '../../lib/ipc'
@@ -30,23 +35,45 @@ interface KanbanBoardProps {
 
 export function KanbanBoard({ onCardClick }: KanbanBoardProps) {
   const { projects, columns, selectedProjectId, selectProject, createColumn, updateColumn, deleteColumn, loadColumns } = useProjectStore()
-  const { tasks, taskTags, loadTasks, getFilteredTasks, moveTask, reorderTasks, createTask } = useTaskStore()
+  const { tasks, taskTags, loadTasks, getFilteredTasks, moveTaskLocal, reorderTasks, createTask, completeTask } = useTaskStore()
 
   const [activeTask, setActiveTask] = useState<Task | null>(null)
   const [showFilters, setShowFilters] = useState(false)
+  const [showEventsPanel, setShowEventsPanel] = useState(false)
   const [showProjectPicker, setShowProjectPicker] = useState(false)
   const [subtaskCounts, setSubtaskCounts] = useState<Record<string, { total: number; completed: number }>>({})
 
-  const activeProjects = projects.filter((p) => p.is_archived === 0 && p.is_template === 0)
   const selectedProject = projects.find((p) => p.id === selectedProjectId)
+
+  // Refs to avoid recreating drag callbacks when tasks/columns change
+  const tasksRef = useRef(tasks)
+  tasksRef.current = tasks
+  const columnsRef = useRef(columns)
+  columnsRef.current = columns
+  const selectedProjectIdRef = useRef(selectedProjectId)
+  selectedProjectIdRef.current = selectedProjectId
+  // Track last dragOver target to avoid redundant state updates
+  const lastOverColumnRef = useRef<string | null>(null)
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
   )
 
+  const measuring = useMemo(() => ({
+    droppable: { strategy: MeasuringStrategy.WhileDragging },
+  }), [])
+
   const collisionDetection: CollisionDetection = useCallback((args) => {
     const pointerCollisions = pointerWithin(args)
-    if (pointerCollisions.length > 0) return pointerCollisions
+    if (pointerCollisions.length > 0) {
+      // Within a column, use closestCenter for precise card ordering
+      const cols = columnsRef.current
+      const columnHit = pointerCollisions.find((c) => cols.some((col) => col.id === c.id))
+      if (!columnHit) {
+        return closestCenter({ ...args, droppableContainers: args.droppableContainers.filter((c) => pointerCollisions.some((p) => p.id === c.id)) })
+      }
+      return pointerCollisions
+    }
     return rectIntersection(args)
   }, [])
 
@@ -79,96 +106,130 @@ export function KanbanBoard({ onCardClick }: KanbanBoardProps) {
     setSubtaskCounts(map)
   }
 
-  const handleDragStart = (event: DragStartEvent) => {
-    const task = tasks.find((t) => t.id === event.active.id)
-    if (task) setActiveTask(task)
-  }
+  // Stable drag handlers — use refs to read current state without recreating callbacks
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const task = tasksRef.current.find((t) => t.id === event.active.id)
+    if (task) {
+      lastOverColumnRef.current = task.column_id
+      setActiveTask(task)
+    }
+  }, [])
 
   const handleDragOver = useCallback((event: DragOverEvent) => {
     const { active, over } = event
-    if (!over || !selectedProjectId) return
+    if (!over || !selectedProjectIdRef.current) return
 
     const activeId = active.id as string
     const overId = over.id as string
 
-    const activeTaskData = tasks.find((t) => t.id === activeId)
-    if (!activeTaskData) return
+    const currentTasks = tasksRef.current
+    const currentColumns = columnsRef.current
 
-    const overColumn = columns.find((c) => c.id === overId)
-    const overTask = tasks.find((t) => t.id === overId)
+    const overColumn = currentColumns.find((c) => c.id === overId)
+    const overTask = currentTasks.find((t) => t.id === overId)
     const targetColumnId = overColumn?.id ?? overTask?.column_id
 
-    if (!targetColumnId || activeTaskData.column_id === targetColumnId) return
+    // Skip if same column as last time — avoids redundant state updates
+    if (!targetColumnId || targetColumnId === lastOverColumnRef.current) return
+    lastOverColumnRef.current = targetColumnId
 
-    moveTask(activeId, targetColumnId, tasks.filter((t) => t.column_id === targetColumnId).length)
-  }, [columns, tasks, selectedProjectId, moveTask])
+    // Only optimistic local state update during drag — no DB write
+    moveTaskLocal(activeId, targetColumnId, currentTasks.filter((t) => t.column_id === targetColumnId).length)
+  }, [moveTaskLocal])
 
   const handleDragEnd = useCallback(async (event: DragEndEvent) => {
     const { active, over } = event
     setActiveTask(null)
+    lastOverColumnRef.current = null
 
-    if (!over || !selectedProjectId) return
+    const projectId = selectedProjectIdRef.current
+    if (!over || !projectId) return
 
     const activeId = active.id as string
     const overId = over.id as string
 
-    const overColumn = columns.find((c) => c.id === overId)
-    const overTask = tasks.find((t) => t.id === overId)
+    const currentTasks = tasksRef.current
+    const currentColumns = columnsRef.current
+
+    const overColumn = currentColumns.find((c) => c.id === overId)
+    const overTask = currentTasks.find((t) => t.id === overId)
     const targetColumnId = overColumn?.id ?? overTask?.column_id
 
     if (!targetColumnId) return
 
-    const activeTaskItem = tasks.find((t) => t.id === activeId)
+    const activeTaskItem = currentTasks.find((t) => t.id === activeId)
     if (!activeTaskItem) return
 
-    const targetTasks = tasks
+    const targetTasks = currentTasks
       .filter((t) => t.column_id === targetColumnId && t.id !== activeId)
       .sort((a, b) => a.sort_order - b.sort_order)
 
     if (activeTaskItem.column_id === targetColumnId) {
-      const currentTasks = tasks
+      const colTasks = currentTasks
         .filter((t) => t.column_id === targetColumnId)
         .sort((a, b) => a.sort_order - b.sort_order)
-      const oldIndex = currentTasks.findIndex((t) => t.id === activeId)
-      const newIndex = currentTasks.findIndex((t) => t.id === overId)
+      const oldIndex = colTasks.findIndex((t) => t.id === activeId)
+      const newIndex = colTasks.findIndex((t) => t.id === overId)
       if (oldIndex !== -1 && newIndex !== -1) {
-        const reordered = arrayMove(currentTasks, oldIndex, newIndex)
+        const reordered = arrayMove(colTasks, oldIndex, newIndex)
         await reorderTasks(targetColumnId, reordered.map((t) => t.id))
       }
     } else {
       let insertIndex = targetTasks.findIndex((t) => t.id === overId)
       if (insertIndex === -1) insertIndex = targetTasks.length
-      await moveTask(activeId, targetColumnId, insertIndex)
 
       const newOrder = [...targetTasks]
       newOrder.splice(insertIndex, 0, activeTaskItem)
       await reorderTasks(targetColumnId, newOrder.map((t) => t.id))
     }
 
-    await loadTasks(selectedProjectId)
-  }, [columns, tasks, selectedProjectId])
-
-  const handleAddColumn = async (name: string) => {
-    if (selectedProjectId) {
-      await createColumn(selectedProjectId, name)
+    // Auto-complete: if moved to a column named "Realizado" (case-insensitive), mark as completed
+    const targetCol = currentColumns.find((c) => c.id === targetColumnId)
+    const sourceCol = currentColumns.find((c) => c.id === activeTaskItem.column_id)
+    if (targetCol && targetCol.name.toLowerCase().includes('realizado') && activeTaskItem.is_completed === 0) {
+      await completeTask(activeId, true)
+    } else if (sourceCol && sourceCol.name.toLowerCase().includes('realizado') && targetCol && !targetCol.name.toLowerCase().includes('realizado') && activeTaskItem.is_completed === 1) {
+      // If moved FROM "Realizado" to another column, uncomplete
+      await completeTask(activeId, false)
     }
-  }
+  }, [reorderTasks, completeTask])
 
-  const handleRenameColumn = async (id: string, name: string) => {
+  const handleAddColumn = useCallback(async (name: string) => {
+    if (selectedProjectIdRef.current) {
+      await createColumn(selectedProjectIdRef.current, name)
+    }
+  }, [createColumn])
+
+  const handleRenameColumn = useCallback(async (id: string, name: string) => {
     await updateColumn(id, { name } as Partial<import('../../types').KanbanColumn>)
-  }
+  }, [updateColumn])
 
-  const handleQuickAdd = async (columnId: string, title: string) => {
-    if (!selectedProjectId) return
-    await createTask({
+  const handleQuickAdd = useCallback(async (columnId: string, title: string, priority?: import('../../types').Priority, dueDate?: string) => {
+    const projectId = selectedProjectIdRef.current
+    if (!projectId) return
+    const task = await createTask({
       title,
-      project_id: selectedProjectId,
+      project_id: projectId,
       column_id: columnId,
+      priority: priority ?? undefined,
     })
-  }
+    if (dueDate && task) {
+      await useTaskStore.getState().updateTask(task.id, { due_date: dueDate })
+    }
+  }, [createTask])
+
+  // Memoize filtered tasks per column to avoid recalc on every render
+  const columnTasks = useMemo(() => {
+    const map: Record<string, Task[]> = {}
+    for (const col of columns) {
+      map[col.id] = getFilteredTasks(col.id)
+    }
+    return map
+  }, [columns, tasks, getFilteredTasks])
 
   const totalTasks = tasks.length
   const completedTasks = tasks.filter((t) => t.is_completed === 1).length
+
   return (
     <div className="kboard">
       {/* Header */}
@@ -192,36 +253,12 @@ export function KanbanBoard({ onCardClick }: KanbanBoardProps) {
           </button>
 
           <AnimatePresence>
-            {showProjectPicker && (
-              <>
-                <div className="kboard__picker-overlay" onClick={() => setShowProjectPicker(false)} />
-                <motion.div
-                  initial={{ opacity: 0, y: -6, scale: 0.97 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: -6, scale: 0.97 }}
-                  transition={{ duration: 0.15 }}
-                  className="kboard__picker glass-strong floating-menu"
-                >
-                  {activeProjects.length === 0 ? (
-                    <p className="kboard__picker-empty">Sin proyectos</p>
-                  ) : (
-                    activeProjects.map((p) => (
-                      <button
-                        key={p.id}
-                        onClick={() => { selectProject(p.id); setShowProjectPicker(false) }}
-                        className={p.id === selectedProjectId ? 'kboard__picker-item--active' : ''}
-                      >
-                        <span
-                          className="kboard__picker-dot"
-                          style={{ backgroundColor: p.color ?? '#01A7C2' }}
-                        />
-                        {p.name}
-                      </button>
-                    ))
-                  )}
-                </motion.div>
-              </>
-            )}
+            <ProjectPicker
+              open={showProjectPicker}
+              onClose={() => setShowProjectPicker(false)}
+              selectedProjectId={selectedProjectId}
+              onSelect={(id) => selectProject(id)}
+            />
           </AnimatePresence>
         </div>
 
@@ -236,6 +273,17 @@ export function KanbanBoard({ onCardClick }: KanbanBoardProps) {
         )}
 
         <div className="kboard__spacer" />
+
+        {/* Events panel toggle */}
+        {selectedProjectId && (
+          <button
+            onClick={() => setShowEventsPanel(!showEventsPanel)}
+            className={`kboard__filter-btn${showEventsPanel ? ' kboard__filter-btn--active' : ''}`}
+          >
+            <Calendar size={15} />
+            Eventos
+          </button>
+        )}
 
         {/* Filter toggle */}
         <button
@@ -270,9 +318,11 @@ export function KanbanBoard({ onCardClick }: KanbanBoardProps) {
         </div>
       ) : (
         <div className="kboard__content">
+          <div className="kboard__columns-area">
           <DndContext
             sensors={sensors}
             collisionDetection={collisionDetection}
+            measuring={measuring}
             onDragStart={handleDragStart}
             onDragOver={handleDragOver}
             onDragEnd={handleDragEnd}
@@ -281,14 +331,20 @@ export function KanbanBoard({ onCardClick }: KanbanBoardProps) {
               {columns.map((col, i) => (
                 <motion.div
                   key={col.id}
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.06, duration: 0.3, ease: [0.25, 1, 0.5, 1] }}
+                  initial={{ opacity: 0, y: 16, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{
+                    delay: i * 0.08,
+                    type: 'spring',
+                    stiffness: 300,
+                    damping: 26,
+                    mass: 0.8,
+                  }}
                   className="kboard__col-wrap"
                 >
                   <KanbanColumn
                     column={col}
-                    tasks={getFilteredTasks(col.id)}
+                    tasks={columnTasks[col.id] ?? []}
                     taskTags={taskTags}
                     subtaskCounts={subtaskCounts}
                     onCardClick={onCardClick}
@@ -303,8 +359,13 @@ export function KanbanBoard({ onCardClick }: KanbanBoardProps) {
 
             <DragOverlay
               dropAnimation={{
-                duration: 200,
-                easing: 'cubic-bezier(0.25, 1, 0.5, 1)',
+                duration: 250,
+                easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+                sideEffects: defaultDropAnimationSideEffects({
+                  styles: {
+                    active: { opacity: '0.2' },
+                  },
+                }),
               }}
             >
               {activeTask && (
@@ -321,6 +382,13 @@ export function KanbanBoard({ onCardClick }: KanbanBoardProps) {
               )}
             </DragOverlay>
           </DndContext>
+          </div>
+          <ProjectEventsPanel
+            projectId={selectedProjectId}
+            projectColor={selectedProject?.color}
+            isOpen={showEventsPanel}
+            onToggle={() => setShowEventsPanel(!showEventsPanel)}
+          />
         </div>
       )}
     </div>

@@ -46,6 +46,12 @@
   height: 100%;
   flex-direction: column;
   overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.widgetgrid-outer::-webkit-scrollbar {
+  display: none;
 }
 
 .widgetgrid-card-inner {
@@ -278,6 +284,94 @@
   color: var(--color-text-on-accent);
 }
 
+/* Today: section divider for no-date tasks */
+.today-section-divider {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  margin-bottom: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-text-muted);
+}
+
+.today-section-line {
+  flex: 1;
+  height: 1px;
+  background-color: var(--color-border);
+}
+
+/* Today: no-date mini post-its */
+.today-nodate-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.today-mini-postit {
+  position: relative;
+  min-width: 0;
+  width: calc(50% - 4px);
+  padding: 10px 10px 8px;
+  border-radius: 4px;
+  border: 1px solid;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  box-shadow: 1px 2px 6px rgba(0, 0, 0, 0.06);
+  transition: box-shadow 200ms;
+}
+
+.today-mini-postit:hover {
+  box-shadow: 2px 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.today-mini-postit-star {
+  position: absolute;
+  top: 4px;
+  right: 5px;
+}
+
+.today-mini-postit-title {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: rgba(0, 0, 0, 0.72);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.today-mini-postit-title.completing {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
+.today-mini-postit-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+}
+
+.today-mini-postit-project {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 8px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  line-height: 1.4;
+}
+
 /* ─── DeadlinesWidget.tsx ─── */
 .deadlines-list {
   display: flex;
@@ -365,10 +459,137 @@
   color: var(--color-text-primary);
 }
 
-.deadlines-task-date {
+.deadlines-task-meta {
   margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.deadlines-task-date {
   font-size: 10px;
   color: var(--color-text-muted);
+}
+
+.deadlines-project-pill {
+  display: inline-block;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 9999px;
+  background-color: var(--color-surface-alt);
+  color: var(--color-text-secondary);
+}
+
+/* ─── UpcomingEventsWidget.tsx ─── */
+.upcevents-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.upcevents-empty-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.upcevents-empty-subtitle {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.upcevents-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background-color: color-mix(in srgb, var(--color-surface-solid) 80%, transparent);
+  padding: 10px 12px;
+  transition: all 150ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.upcevents-row:hover {
+  border-color: var(--color-border-strong);
+  background-color: var(--color-surface-alt);
+}
+
+.upcevents-type-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.upcevents-type-icon.parcial {
+  background-color: rgba(126, 25, 70, 0.1);
+  color: #7E1946;
+}
+
+.upcevents-type-icon.reunion {
+  background-color: rgba(1, 167, 194, 0.1);
+  color: var(--color-primary);
+}
+
+.upcevents-type-icon.entrega {
+  background-color: rgba(221, 244, 91, 0.2);
+  color: var(--color-accent-dark);
+}
+
+.upcevents-type-icon.hito {
+  background-color: rgba(232, 168, 48, 0.12);
+  color: var(--color-warning);
+}
+
+.upcevents-type-icon.control {
+  background-color: rgba(48, 75, 66, 0.1);
+  color: #304B42;
+}
+
+.dark .upcevents-type-icon.parcial {
+  background-color: rgba(168, 50, 101, 0.15);
+  color: #D4729A;
+}
+
+.dark .upcevents-type-icon.entrega {
+  background-color: rgba(221, 244, 91, 0.1);
+  color: var(--color-accent);
+}
+
+.dark .upcevents-type-icon.control {
+  background-color: rgba(48, 75, 66, 0.15);
+  color: var(--color-accent);
+}
+
+.upcevents-meta {
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+
+.upcevents-type-label {
+  font-weight: 600;
+}
+
+.upcevents-dot {
+  opacity: 0.4;
+}
+
+.upcevents-time {
+  font-family: var(--font-mono);
+  font-weight: 600;
 }
 
 /* ─── ProgressWidget.tsx ─── */
@@ -1021,4 +1242,144 @@
 .postitboard-empty-highlight {
   color: var(--color-primary);
   font-weight: 500;
+}
+
+/* ─── ProjectTasksWidget.tsx ─── */
+.projtasks-container {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.projtasks-summary {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.projtasks-summary-count {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.projtasks-summary-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.projtasks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.projtasks-group {
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+  background-color: color-mix(in srgb, var(--color-surface-solid) 60%, transparent);
+  overflow: hidden;
+}
+
+.projtasks-group-header {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-muted);
+  transition: background-color 150ms;
+}
+
+.projtasks-group-header:hover {
+  background-color: var(--color-surface-alt);
+}
+
+.projtasks-group-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.projtasks-group-dot {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  border-radius: 9999px;
+}
+
+.projtasks-group-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.projtasks-group-count {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--color-text-muted);
+  background-color: var(--color-surface-alt);
+  padding: 1px 7px;
+  border-radius: 9999px;
+}
+
+.projtasks-group-tasks {
+  padding: 0 8px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.projtasks-task-content {
+  min-width: 0;
+  flex: 1;
+}
+
+.projtasks-task-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--color-text-primary);
+}
+
+.projtasks-task-title.completing {
+  color: var(--color-text-muted);
+  text-decoration: line-through;
+}
+
+.projtasks-task-meta {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.projtasks-task-date {
+  font-size: 10px;
+  color: var(--color-text-muted);
+}
+
+.projtasks-empty-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.projtasks-empty-subtitle {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--color-text-muted);
 }

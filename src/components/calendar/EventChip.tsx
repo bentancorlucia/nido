@@ -1,14 +1,16 @@
 import { motion } from 'framer-motion'
 import type { CalendarEvent } from '../../types'
+import { EventTypeIcon } from '../../lib/eventTypes'
 
 interface EventChipProps {
   event: CalendarEvent
   compact?: boolean
   onClick?: (event: CalendarEvent) => void
+  projectColor?: string | null
 }
 
-export function EventChip({ event, compact = false, onClick }: EventChipProps) {
-  const bgColor = event.color || 'var(--color-primary)'
+export function EventChip({ event, compact = false, onClick, projectColor }: EventChipProps) {
+  const bgColor = event.color || projectColor || '#01A7C2'
   const isAllDay = event.is_all_day === 1
 
   const startTime = !isAllDay && event.start_datetime.includes('T')
@@ -22,17 +24,21 @@ export function EventChip({ event, compact = false, onClick }: EventChipProps) {
       onClick={() => onClick?.(event)}
       className={`event-chip ${compact ? 'event-chip-compact' : 'event-chip-normal'}`}
       style={{
-        backgroundColor: `${bgColor}20`,
+        background: `linear-gradient(135deg, ${bgColor}28, ${bgColor}48)`,
         borderLeft: `3px solid ${bgColor}`,
-        color: bgColor,
+        color: 'var(--color-text-primary)',
       }}
       title={event.title}
     >
       <span className="event-chip-inner">
+        <EventTypeIcon type={event.event_type} size={11} className="event-chip-type-icon" />
         {startTime && !compact && (
           <span className="event-chip-time">{startTime}</span>
         )}
         <span className="event-chip-title">{event.title}</span>
+        {event.google_event_id && (
+          <span className="event-chip-google-badge" title="Google Calendar">G</span>
+        )}
       </span>
     </motion.button>
   )

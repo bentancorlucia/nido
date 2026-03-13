@@ -13,6 +13,7 @@ import {
 import { es } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useCalendarStore } from '../../stores/useCalendarStore'
+import { useTaskStore } from '../../stores/useTaskStore'
 import { staggerContainer, staggerItem } from '../../lib/animations'
 
 const WEEKDAYS_SHORT = ['L', 'M', 'X', 'J', 'V', 'S', 'D']
@@ -24,6 +25,7 @@ interface YearViewProps {
 
 export function YearView({ onClickMonth }: YearViewProps) {
   const { currentDate, setCurrentDate, getEventsForDate } = useCalendarStore()
+  const { tasks } = useTaskStore()
   const year = currentDate.getFullYear()
   const currentMonthIndex = currentDate.getMonth()
 
@@ -76,6 +78,7 @@ export function YearView({ onClickMonth }: YearViewProps) {
               monthDate={monthDate}
               isCurrent={monthDate.getMonth() === currentMonthIndex}
               getEventsForDate={getEventsForDate}
+              tasks={tasks}
               onClick={() => onClickMonth(monthDate)}
             />
           </motion.div>
@@ -89,11 +92,13 @@ function MiniMonth({
   monthDate,
   isCurrent,
   getEventsForDate,
+  tasks,
   onClick,
 }: {
   monthDate: Date
   isCurrent: boolean
-  getEventsForDate: (dateStr: string) => unknown[]
+  getEventsForDate: (dateStr: string) => import('../../types').CalendarEvent[]
+  tasks: import('../../types').Task[]
   onClick: () => void
 }) {
   const weeks = useMemo(() => {
@@ -149,7 +154,9 @@ function MiniMonth({
             const inMonth = isSameMonth(day, monthDate)
             const today = isToday(day)
             const dateStr = format(day, 'yyyy-MM-dd')
-            const eventCount = getEventsForDate(dateStr).length
+            const typedEvents = getEventsForDate(dateStr).filter((e) => e.event_type && e.event_type !== 'evento').length
+            const taskCount = tasks.filter((t) => t.due_date && t.due_date.split('T')[0] === dateStr && t.is_archived === 0).length
+            const eventCount = typedEvents + taskCount
 
             // Heatmap intensity
             let heatClass = ''

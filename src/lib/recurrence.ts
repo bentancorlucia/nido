@@ -79,10 +79,15 @@ export function calculateNextOccurrence(
 
     case 'custom': {
       if (!param) return null
-      const match = param.match(/every_(\d+)_(days|weeks)/)
+      const match = param.match(/every_(\d+)_(days|weeks|months|years)/)
       if (!match) return null
       const n = parseInt(match[1])
-      return match[2] === 'weeks' ? addWeeks(currentDate, n) : addDays(currentDate, n)
+      switch (match[2]) {
+        case 'weeks': return addWeeks(currentDate, n)
+        case 'months': return addMonths(currentDate, n)
+        case 'years': return addYears(currentDate, n)
+        default: return addDays(currentDate, n)
+      }
     }
 
     default:
@@ -167,10 +172,10 @@ export function recurrenceLabel(rule: string | null): string {
       return 'Días hábiles (Lun-Vie)'
     case 'custom': {
       if (!param) return 'Personalizado'
-      const match = param.match(/every_(\d+)_(days|weeks)/)
+      const match = param.match(/every_(\d+)_(days|weeks|months|years)/)
       if (!match) return 'Personalizado'
-      const unit = match[2] === 'weeks' ? 'semanas' : 'días'
-      return `Cada ${match[1]} ${unit}`
+      const unitMap: Record<string, string> = { days: 'días', weeks: 'semanas', months: 'meses', years: 'años' }
+      return `Cada ${match[1]} ${unitMap[match[2]] ?? match[2]}`
     }
     default:
       return rule
@@ -185,7 +190,7 @@ export function buildRecurrenceRule(
     monthDay?: number
     yearDate?: string // "M-D"
     customInterval?: number
-    customUnit?: 'days' | 'weeks'
+    customUnit?: 'days' | 'weeks' | 'months' | 'years'
   }
 ): string {
   switch (type) {
@@ -206,5 +211,7 @@ export function buildRecurrenceRule(
       const unit = options?.customUnit ?? 'days'
       return `custom:every_${n}_${unit}`
     }
+    default:
+      return 'daily'
   }
 }

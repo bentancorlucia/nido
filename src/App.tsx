@@ -6,6 +6,7 @@ import {
   Kanban,
   Calendar,
   FolderTree,
+  GraduationCap,
   Timer,
   Settings as SettingsIcon,
 } from 'lucide-react'
@@ -18,7 +19,9 @@ import { CalendarPage } from './components/calendar/CalendarView'
 import { TodayView } from './components/today/TodayView'
 import { PomodoroFull } from './components/pomodoro/PomodoroFull'
 import { Dashboard } from './components/dashboard/Dashboard'
+import { FacultyPage } from './components/faculty/FacultyPage'
 import { CommandPalette } from './components/search/CommandPalette'
+import { ToastContainer } from './components/ui/ToastContainer'
 import { useUIStore } from './stores/useUIStore'
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts'
 import type { Page } from './types'
@@ -52,6 +55,11 @@ const pageData: Record<Page, {
     title: 'Proyectos',
     description: 'Organización jerárquica ilimitada con sub-proyectos',
     icon: FolderTree,
+  },
+  faculty: {
+    title: 'Facultad',
+    description: 'Materias, asistencias y notas de la universidad',
+    icon: GraduationCap,
   },
   pomodoro: {
     title: 'Pomodoro',
@@ -109,6 +117,8 @@ function PageContent({ page }: { page: Page }) {
       return <CalendarPage />
     case 'projects':
       return <ProjectsPage />
+    case 'faculty':
+      return <FacultyPage />
     case 'pomodoro':
       return <PomodoroFull />
     case 'settings':
@@ -143,6 +153,7 @@ export function App() {
         </PageTransition>
       </MainLayout>
       <CommandPalette open={searchOpen} onClose={closeSearch} />
+      <ToastContainer />
     </>
   )
 }

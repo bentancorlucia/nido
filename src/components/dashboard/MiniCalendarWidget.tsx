@@ -17,8 +17,7 @@ import { useUIStore } from '../../stores/useUIStore'
 
 export function MiniCalendarWidget() {
   const [currentMonth, setCurrentMonth] = useState(new Date())
-  const [eventDates, setEventDates] = useState<Set<string>>(new Set())
-  const [taskDates, setTaskDates] = useState<Set<string>>(new Set())
+  const [dateDots, setDateDots] = useState<Map<string, { events: number; tasks: number }>>(new Map())
   const setCurrentPage = useUIStore((s) => s.setCurrentPage)
 
   const days = useMemo(() => {
@@ -38,7 +37,7 @@ export function MiniCalendarWidget() {
     const end = format(endOfMonth(currentMonth), 'yyyy-MM-dd')
 
     const events = await dbQuery<{ start_datetime: string }>(
-      `SELECT start_datetime FROM events WHERE date(start_datetime) >= ? AND date(start_datetime) <= ?`,
+      `SELECT start_datetime FROM events WHERE date(start_datetime) >= ? AND date(start_datetime) <= ? AND event_type != 'evento'`,
       [start, end]
     )
     const tasks = await dbQuery<{ due_date: string }>(
@@ -46,8 +45,22 @@ export function MiniCalendarWidget() {
       [start, end]
     )
 
-    setEventDates(new Set(events.map((e) => e.start_datetime.split('T')[0])))
-    setTaskDates(new Set(tasks.map((t) => t.due_date)))
+    const dots = new Map<string, { events: number; tasks: number }>()
+    for (const e of events) {
+      const d = e.start_datetime.split('T')[0]
+      const entry = dots.get(d) ?? { events: 0, tasks: 0 }
+      entry.events++
+      dots.set(d, entry)
+    }
+    for (const t of tasks) {
+      const d = t.due_date
+      if (d) {
+        const entry = dots.get(d) ?? { events: 0, tasks: 0 }
+        entry.tasks++
+        dots.set(d, entry)
+      }
+    }
+    setDateDots(dots)
   }
 
   const weekDays = ['L', 'M', 'M', 'J', 'V', 'S', 'D']
@@ -93,8 +106,9 @@ export function MiniCalendarWidget() {
           const dateStr = format(day, 'yyyy-MM-dd')
           const inMonth = isSameMonth(day, currentMonth)
           const todayDay = isToday(day)
-          const hasEvent = eventDates.has(dateStr)
-          const hasTask = taskDates.has(dateStr)
+          const info = dateDots.get(dateStr)
+          const hasEvents = info && info.events > 0
+          const hasTasks = info && info.tasks > 0
 
           return (
             <button
@@ -104,11 +118,11 @@ export function MiniCalendarWidget() {
             >
               {format(day, 'd')}
 
-              {inMonth && (hasEvent || hasTask) && (
-                <div className="minical-dots">
-                  {hasEvent && <span className="mini-cal-dot" style={{ background: 'var(--color-primary)' }} />}
-                  {hasTask && <span className="mini-cal-dot" style={{ background: 'var(--color-warning)' }} />}
-                </div>
+              {inMonth && (hasEvents || hasTasks) && !todayDay && (
+                <span className="mini-daycell-dots">
+                  {hasEvents && <span className="mini-daycell-dot dot-event" />}
+                  {hasTasks && <span className="mini-daycell-dot dot-task" />}
+                </span>
               )}
             </button>
           )

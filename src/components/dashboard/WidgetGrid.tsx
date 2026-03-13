@@ -1,12 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   CalendarCheck,
   CalendarClock,
-  BarChart3,
+  CalendarRange,
   StickyNote,
   Calendar,
-  Timer,
   MoreHorizontal,
   Eye,
   EyeOff,
@@ -17,50 +16,46 @@ import type { WidgetType } from '../../stores/useDashboardStore'
 import type { DashboardWidget } from '../../types'
 import { TodayWidget } from './TodayWidget'
 import { DeadlinesWidget } from './DeadlinesWidget'
-import { ProgressWidget } from './ProgressWidget'
+import { UpcomingEventsWidget } from './UpcomingEventsWidget'
 import { PostItMiniBoard } from './PostItMiniBoard'
 import { MiniCalendarWidget } from './MiniCalendarWidget'
-import { PomodoroWidget } from './PomodoroWidget'
 
 const WIDGET_ICONS: Record<WidgetType, typeof CalendarCheck> = {
   today: CalendarCheck,
   deadlines: CalendarClock,
-  progress: BarChart3,
+  upcoming_events: CalendarRange,
   postits: StickyNote,
   mini_calendar: Calendar,
-  pomodoro: Timer,
 }
 
 const WIDGET_COMPONENTS: Record<WidgetType, React.ComponentType> = {
   today: TodayWidget,
   deadlines: DeadlinesWidget,
-  progress: ProgressWidget,
+  upcoming_events: UpcomingEventsWidget,
   postits: PostItMiniBoard,
   mini_calendar: MiniCalendarWidget,
-  pomodoro: PomodoroWidget,
 }
 
 const BENTO_CLASSES: Record<WidgetType, string> = {
   today: 'bento-today',
   deadlines: 'bento-deadlines',
-  progress: 'bento-progress',
+  upcoming_events: 'bento-upcevents',
   postits: 'bento-postits',
   mini_calendar: 'bento-calendar',
-  pomodoro: 'bento-pomodoro',
 }
 
 const ICON_CLASSES: Record<WidgetType, string> = {
   today: 'today',
   deadlines: 'deadlines',
-  progress: 'progress',
+  upcoming_events: 'upcevents',
   postits: 'postits',
   mini_calendar: 'calendar',
-  pomodoro: 'pomodoro',
 }
 
 function WidgetCard({ widget, index }: { widget: DashboardWidget; index: number }) {
   const { toggleVisibility } = useDashboardStore()
   const [showMenu, setShowMenu] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   const type = widget.widget_type as WidgetType
   const Icon = WIDGET_ICONS[type] ?? CalendarCheck
@@ -68,6 +63,23 @@ function WidgetCard({ widget, index }: { widget: DashboardWidget; index: number 
   const label = WIDGET_LABELS[type] ?? widget.widget_type
   const bentoClass = BENTO_CLASSES[type] ?? ''
   const iconClass = ICON_CLASSES[type] ?? 'today'
+
+  // Close menu on outside click (document-level, avoids position:fixed inside transforms)
+  useEffect(() => {
+    if (!showMenu) return
+    const handleClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [showMenu])
+
+  const handleHide = useCallback(() => {
+    setShowMenu(false)
+    toggleVisibility(widget.id)
+  }, [toggleVisibility, widget.id])
 
   if (!Component) return null
 
@@ -95,9 +107,9 @@ function WidgetCard({ widget, index }: { widget: DashboardWidget; index: number 
             <span className="widget-title">{label}</span>
           </div>
 
-          <div className="widgetgrid-menu-zone">
+          <div className="widgetgrid-menu-zone" ref={menuRef}>
             <button
-              onClick={() => setShowMenu(!showMenu)}
+              onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu) }}
               className="widgetgrid-menu-btn"
               style={{ opacity: showMenu ? 1 : undefined }}
             >
@@ -106,26 +118,20 @@ function WidgetCard({ widget, index }: { widget: DashboardWidget; index: number 
 
             <AnimatePresence>
               {showMenu && (
-                <>
-                  <div className="widgetgrid-menu-overlay" onClick={() => setShowMenu(false)} />
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9, y: -6 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.9, y: -6 }}
-                    transition={{ duration: 0.15 }}
-                    className="widgetgrid-menu-dropdown"
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, y: -6 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: -6 }}
+                  transition={{ duration: 0.15 }}
+                  className="widgetgrid-menu-dropdown"
+                >
+                  <button
+                    onClick={handleHide}
+                    className="widgetgrid-menu-item"
                   >
-                    <button
-                      onClick={() => {
-                        toggleVisibility(widget.id)
-                        setShowMenu(false)
-                      }}
-                      className="widgetgrid-menu-item"
-                    >
-                      <EyeOff size={13} /> Ocultar widget
-                    </button>
-                  </motion.div>
-                </>
+                    <EyeOff size={13} /> Ocultar widget
+                  </button>
+                </motion.div>
               )}
             </AnimatePresence>
           </div>
@@ -155,8 +161,8 @@ export function WidgetGrid() {
     return (
       <div className="dashboard-bento animate-pulse">
         {[
-          'bento-today', 'bento-deadlines', 'bento-progress',
-          'bento-postits', 'bento-calendar', 'bento-pomodoro',
+          'bento-today', 'bento-deadlines', 'bento-upcevents',
+          'bento-postits', 'bento-calendar',
         ].map((cls, i) => (
           <div
             key={i}

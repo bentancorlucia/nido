@@ -11,6 +11,8 @@ import {
 import { es } from 'date-fns/locale'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useCalendarStore } from '../../stores/useCalendarStore'
+import { useTaskStore } from '../../stores/useTaskStore'
+import { useProjectStore } from '../../stores/useProjectStore'
 import { DayCell } from './DayCell'
 import { staggerContainer, staggerItem } from '../../lib/animations'
 import type { CalendarEvent } from '../../types'
@@ -24,6 +26,30 @@ interface MonthViewProps {
 
 export function MonthView({ onClickEvent, onClickDay }: MonthViewProps) {
   const { currentDate, navigateMonth, goToToday, getEventsForDate } = useCalendarStore()
+  const { tasks } = useTaskStore()
+  const { projects } = useProjectStore()
+
+  // Build project_id → color map
+  const projectColorMap = useMemo(() => {
+    const map: Record<string, string> = {}
+    for (const p of projects) {
+      if (p.color) map[p.id] = p.color
+    }
+    return map
+  }, [projects])
+
+  // Index tasks by due_date for fast lookup
+  const tasksByDate = useMemo(() => {
+    const map: Record<string, typeof tasks> = {}
+    for (const task of tasks) {
+      if (task.due_date && task.is_archived === 0) {
+        const dateStr = task.due_date.split('T')[0]
+        if (!map[dateStr]) map[dateStr] = []
+        map[dateStr].push(task)
+      }
+    }
+    return map
+  }, [tasks])
 
   const weeks = useMemo(() => {
     const monthStart = startOfMonth(currentDate)
@@ -103,13 +129,16 @@ export function MonthView({ onClickEvent, onClickDay }: MonthViewProps) {
       >
         {weeks.flat().map((date, idx) => {
           const dateStr = format(date, 'yyyy-MM-dd')
-          const events = getEventsForDate(dateStr)
+          const events = getEventsForDate(dateStr).filter((e) => e.event_type && e.event_type !== 'evento')
+          const dayTasks = tasksByDate[dateStr] ?? []
           return (
             <motion.div key={dateStr + idx} variants={staggerItem}>
               <DayCell
                 date={date}
                 currentMonth={currentDate}
                 events={events}
+                tasks={dayTasks}
+                projectColorMap={projectColorMap}
                 onClickDay={onClickDay}
                 onClickEvent={onClickEvent}
               />

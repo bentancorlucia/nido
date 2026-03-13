@@ -38,6 +38,7 @@ export function ProjectsPage() {
               onNavigateKanban={() => {
                 setCurrentPage('kanban')
               }}
+              onSelectProject={selectProject}
             />
           </motion.div>
         ) : (

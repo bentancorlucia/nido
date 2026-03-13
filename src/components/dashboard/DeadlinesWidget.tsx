@@ -4,12 +4,18 @@ import { CalendarClock, ArrowRight } from 'lucide-react'
 import { format, addDays, isToday, isTomorrow, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
 import { dbQuery } from '../../lib/ipc'
+import { localDateStr } from '../../lib/dates'
 import type { Task } from '../../types'
+
+interface TaskWithProject extends Task {
+  project_name: string | null
+  project_color: string | null
+}
 
 interface DeadlineGroup {
   label: string
   date: string
-  tasks: Task[]
+  tasks: TaskWithProject[]
 }
 
 export function DeadlinesWidget() {
@@ -22,19 +28,21 @@ export function DeadlinesWidget() {
   }, [])
 
   async function loadDeadlines() {
-    const today = new Date().toISOString().split('T')[0]
+    const today = localDateStr()
     const endDate = format(addDays(new Date(), 7), 'yyyy-MM-dd')
 
-    const tasks = await dbQuery<Task>(
-      `SELECT * FROM tasks
-       WHERE is_archived = 0 AND is_completed = 0
-         AND due_date IS NOT NULL AND due_date >= ? AND due_date <= ?
-       ORDER BY due_date ASC, CASE priority WHEN 'alta' THEN 0 WHEN 'media' THEN 1 ELSE 2 END
+    const tasks = await dbQuery<TaskWithProject>(
+      `SELECT t.*, p.name as project_name, p.color as project_color
+       FROM tasks t
+       LEFT JOIN projects p ON t.project_id = p.id
+       WHERE t.is_archived = 0 AND t.is_completed = 0
+         AND t.due_date IS NOT NULL AND t.due_date >= ? AND t.due_date <= ?
+       ORDER BY t.due_date ASC, CASE t.priority WHEN 'alta' THEN 0 WHEN 'media' THEN 1 ELSE 2 END
        LIMIT 20`,
       [today, endDate]
     )
 
-    const grouped: Record<string, Task[]> = {}
+    const grouped: Record<string, TaskWithProject[]> = {}
     for (const task of tasks) {
       const date = task.due_date!
       if (!grouped[date]) grouped[date] = []
@@ -52,7 +60,7 @@ export function DeadlinesWidget() {
     setGroups(result)
   }
 
-  const today = new Date().toISOString().split('T')[0]
+  const today = localDateStr()
 
   if (groups.length === 0) {
     return (
@@ -109,17 +117,37 @@ export function DeadlinesWidget() {
                     className="deadlines-task-row"
                   >
                     <div
-                      className={`priority-stripe ${task.priority}`}
-                      style={{ minHeight: 24, width: 3 }}
+                      className={task.project_color ? '' : `priority-stripe ${task.priority}`}
+                      style={{
+                        minHeight: 24,
+                        width: 3,
+                        borderRadius: 2,
+                        backgroundColor: task.project_color ?? undefined,
+                      }}
                     />
 
                     <div className="deadlines-task-content">
                       <p className="deadlines-task-title">
                         {task.title}
                       </p>
-                      <p className="deadlines-task-date">
-                        {format(parseISO(task.due_date!), "d 'de' MMM", { locale: es })}
-                      </p>
+                      <div className="deadlines-task-meta">
+                        <span className="deadlines-task-date">
+                          {format(parseISO(task.due_date!), "d 'de' MMM", { locale: es })}
+                        </span>
+                        {task.project_name && (
+                          <span
+                            className="deadlines-project-pill"
+                            style={{
+                              backgroundColor: task.project_color
+                                ? `${task.project_color}18`
+                                : undefined,
+                              color: task.project_color ?? undefined,
+                            }}
+                          >
+                            {task.project_name}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <span className={`urgency-badge ${badgeClass}`}>

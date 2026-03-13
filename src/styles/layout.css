@@ -49,11 +49,109 @@
 .topbar-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 8px;
+  height: 44px;
+  padding: 0 16px 0 12px;
   flex-shrink: 0;
   border-bottom: 1px solid var(--color-border);
 }
 
+.topbar-spacer {
+  flex: 1;
+}
+
+/* ─── Tabs ─── */
+.topbar-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  max-width: 65%;
+}
+
+.topbar-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.topbar-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  font-family: var(--font-sans);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 150ms ease;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.topbar-tab:hover {
+  color: var(--color-text-secondary);
+  background-color: var(--color-surface-alt);
+}
+
+.topbar-tab--active {
+  color: var(--color-text-primary);
+  background-color: var(--color-surface-solid);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+
+.topbar-tab-label {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.topbar-tab-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  opacity: 0;
+  color: var(--color-text-muted);
+  transition: all 120ms ease;
+  flex-shrink: 0;
+}
+
+.topbar-tab:hover .topbar-tab-close {
+  opacity: 0.5;
+}
+
+.topbar-tab-close:hover {
+  opacity: 1 !important;
+  background-color: color-mix(in srgb, var(--color-danger) 15%, transparent);
+  color: var(--color-danger);
+}
+
+.topbar-tab-add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  color: var(--color-text-muted);
+  flex-shrink: 0;
+  transition: all 150ms ease;
+}
+
+.topbar-tab-add:hover {
+  color: var(--color-primary);
+  background-color: var(--color-primary-light);
+}
+
+/* Legacy title group - kept for compatibility */
 .topbar-title-group {
   display: flex;
   align-items: baseline;
@@ -359,4 +457,32 @@
 
 .sidebar-bottom-label {
   font-weight: 500;
+}
+
+/* ─── Sync Button ─── */
+.topbar-sync-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  color: var(--color-primary);
+  transition: all 150ms ease;
+}
+
+.topbar-sync-btn:hover {
+  background-color: color-mix(in srgb, var(--color-primary-light) 40%, transparent);
+}
+
+/* ─── Spin animation ─── */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
 }

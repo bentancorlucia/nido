@@ -1,20 +1,20 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { format } from 'date-fns'
+import { format, differenceInDays, parseISO } from 'date-fns'
 import { es } from 'date-fns/locale'
 import {
-  Sun, Moon, Sunrise, Sunset, CloudSun,
   ListChecks, Clock, Timer, Sparkles,
-  CalendarCheck, Zap, Trophy,
-  CheckCircle2, Circle,
+  Zap, Circle,
+  CalendarClock, Inbox,
 } from 'lucide-react'
 import { FadeIn } from '../../lib/animations'
 import { useCalendarStore } from '../../stores/useCalendarStore'
 import { useTaskStore } from '../../stores/useTaskStore'
 import { usePomodoroStore } from '../../stores/usePomodoroStore'
 import { dbQuery } from '../../lib/ipc'
-import { TimelineHour } from './TimelineHour'
+import { TimelineHour, HOUR_HEIGHT } from './TimelineHour'
 import { TodayTask } from './TodayTask'
+import type { ProjectInfo } from './TodayTask'
 import type { Task } from '../../types'
 
 const HOURS = Array.from({ length: 18 }, (_, i) => i + 6) // 6:00–23:00
@@ -44,12 +44,21 @@ function getPostItRotation(id: string): number {
   return (hash % 5) - 2 // -2 to 2 degrees
 }
 
+function formatRelativeDate(dateStr: string, todayStr: string): string {
+  const diff = differenceInDays(parseISO(dateStr), parseISO(todayStr))
+  if (diff === 1) return 'Mañana'
+  if (diff === 2) return 'Pasado mañana'
+  if (diff <= 7) return format(parseISO(dateStr), "EEEE", { locale: es })
+  return format(parseISO(dateStr), "d 'de' MMM", { locale: es })
+}
+
 export function TodayView() {
   const { loadEvents, getEventsForDate } = useCalendarStore()
   const { completeTask } = useTaskStore()
   const { sessionsToday, totalFocusToday } = usePomodoroStore()
 
-  const [todayTasks, setTodayTasks] = useState<Task[]>([])
+  const [pendingTasks, setPendingTasks] = useState<Task[]>([])
+  const [projectMap, setProjectMap] = useState<Record<string, ProjectInfo>>({})
   const [currentTime, setCurrentTime] = useState(new Date())
   const timelineRef = useRef<HTMLDivElement>(null)
 
@@ -71,20 +80,42 @@ export function TodayView() {
   useEffect(() => {
     if (timelineRef.current) {
       const hourIndex = Math.max(0, currentTime.getHours() - 6)
-      const scrollTarget = hourIndex * 28 - 40
+      const scrollTarget = hourIndex * HOUR_HEIGHT - 40
       timelineRef.current.scrollTop = Math.max(0, scrollTarget)
     }
   }, [])
 
   async function loadTodayTasks() {
-    const rows = await dbQuery<Task>(
+    // All incomplete tasks, ordered by deadline urgency
+    const pending = await dbQuery<Task>(
       `SELECT * FROM tasks
-       WHERE is_archived = 0 AND parent_task_id IS NULL
-       AND (due_date = ? OR (due_date < ? AND is_completed = 0))
-       ORDER BY is_completed ASC, due_time ASC NULLS LAST, priority ASC, sort_order ASC`,
+       WHERE is_archived = 0 AND parent_task_id IS NULL AND is_completed = 0
+       ORDER BY
+         CASE WHEN due_date = ? THEN 0
+              WHEN due_date IS NOT NULL AND due_date < ? THEN 1
+              WHEN due_date IS NOT NULL THEN 2
+              ELSE 3 END,
+         due_date ASC,
+         CASE priority WHEN 'alta' THEN 0 WHEN 'media' THEN 1 ELSE 2 END,
+         sort_order ASC`,
       [todayStr, todayStr]
     )
-    setTodayTasks(rows)
+    setPendingTasks(pending)
+
+    // Load project info for tasks that have a project_id
+    const projectIds = [...new Set(pending.map((t) => t.project_id).filter(Boolean))] as string[]
+    if (projectIds.length > 0) {
+      const placeholders = projectIds.map(() => '?').join(',')
+      const projects = await dbQuery<{ id: string; name: string; color: string }>(
+        `SELECT id, name, color FROM projects WHERE id IN (${placeholders})`,
+        projectIds
+      )
+      const map: Record<string, ProjectInfo> = {}
+      for (const p of projects) {
+        map[p.id] = { name: p.name, color: p.color ?? '#01A7C2' }
+      }
+      setProjectMap(map)
+    }
   }
 
   const handleComplete = async (id: string, completed: boolean) => {
@@ -96,14 +127,11 @@ export function TodayView() {
   const currentMinute = currentTime.getMinutes()
   const greeting = getGreeting(currentHour)
 
-  const pendingTasks = todayTasks.filter((t) => t.is_completed === 0)
-  const completedTasks = todayTasks.filter((t) => t.is_completed === 1)
-  const overdueTasks = pendingTasks.filter((t) => t.due_date && t.due_date < todayStr)
-  const todayOnlyTasks = pendingTasks.filter((t) => !t.due_date || t.due_date >= todayStr)
-
-  const totalTasks = todayTasks.length
-  const completedCount = completedTasks.length
-  const progress = totalTasks > 0 ? Math.round((completedCount / totalTasks) * 100) : 0
+  // Group pending tasks by urgency
+  const todayDeadlineTasks = pendingTasks.filter((t) => t.due_date === todayStr)
+  const overdueTasks = pendingTasks.filter((t) => t.due_date !== null && t.due_date < todayStr)
+  const upcomingTasks = pendingTasks.filter((t) => t.due_date !== null && t.due_date > todayStr)
+  const noDateTasks = pendingTasks.filter((t) => !t.due_date)
 
   const eventsHours = todayEvents.reduce((acc, e) => {
     const startH = parseInt(e.start_datetime.split('T')[1]?.split(':')[0] ?? '0')
@@ -112,12 +140,7 @@ export function TodayView() {
   }, 0)
 
   const motivationalIndex = new Date().getDate() % motivationalMessages.length
-  const hasContent = todayTasks.length > 0 || todayEvents.length > 0
-
-  // Progress ring
-  const ringRadius = 54
-  const ringCircumference = 2 * Math.PI * ringRadius
-  const ringOffset = ringCircumference - (progress / 100) * ringCircumference
+  const hasContent = pendingTasks.length > 0 || todayEvents.length > 0
 
   return (
     <div className="today-root">
@@ -144,23 +167,6 @@ export function TodayView() {
 
             {/* Stats inline */}
             <div className="today-hero-stats">
-              <div className="today-hero-ring">
-                <svg className="today-progress-ring" viewBox="0 0 120 120">
-                  <circle cx="60" cy="60" r={ringRadius} className="today-ring-bg" />
-                  <motion.circle
-                    cx="60" cy="60" r={ringRadius}
-                    className="today-ring-fill"
-                    strokeDasharray={ringCircumference}
-                    initial={{ strokeDashoffset: ringCircumference }}
-                    animate={{ strokeDashoffset: ringOffset }}
-                    transition={{ duration: 1.2, ease: 'easeOut', delay: 0.3 }}
-                  />
-                </svg>
-                <div className="today-progress-center">
-                  <span className="today-progress-value">{progress}%</span>
-                </div>
-              </div>
-
               <div className="today-hero-pills">
                 <div className="today-mini-pill">
                   <ListChecks size={14} />
@@ -217,6 +223,9 @@ export function TodayView() {
                     events={todayEvents}
                     isCurrentHour={hour === currentHour}
                     currentMinute={currentMinute}
+                    projectColorMap={Object.fromEntries(
+                      Object.entries(projectMap).map(([id, p]) => [id, p.color])
+                    )}
                   />
                 ))}
               </div>
@@ -224,7 +233,7 @@ export function TodayView() {
           </div>
         </FadeIn>
 
-        {/* ─── Tasks (Right) — Post-its ─── */}
+        {/* ─── Tasks (Right) ─── */}
         <FadeIn delay={0.1} className="today-tasks-col">
           <div className="today-tasks-scroll">
             {/* Empty state */}
@@ -251,7 +260,36 @@ export function TodayView() {
               </motion.div>
             )}
 
-            {/* Overdue */}
+            {/* ── Hoy: deadline tasks — MOST prominent ── */}
+            {todayDeadlineTasks.length > 0 && (
+              <div className="today-postit-section">
+                <div className="today-section-header">
+                  <h2 className="today-section-title today-section-title-today">
+                    <Zap size={16} className="today-section-icon-today" />
+                    Hoy
+                  </h2>
+                  <span className="today-section-count today-section-count-today">
+                    {todayDeadlineTasks.length}
+                  </span>
+                </div>
+                <div className="today-postit-board">
+                  <AnimatePresence mode="popLayout">
+                    {todayDeadlineTasks.map((task) => (
+                      <TodayTask
+                        key={task.id}
+                        task={task}
+                        onComplete={handleComplete}
+                        rotation={getPostItRotation(task.id)}
+                        variant="today"
+                        project={task.project_id ? projectMap[task.project_id] ?? null : null}
+                      />
+                    ))}
+                  </AnimatePresence>
+                </div>
+              </div>
+            )}
+
+            {/* ── Vencidas ── */}
             {overdueTasks.length > 0 && (
               <div className="today-postit-section">
                 <div className="today-section-header">
@@ -271,6 +309,8 @@ export function TodayView() {
                         task={task}
                         onComplete={handleComplete}
                         rotation={getPostItRotation(task.id)}
+                        variant="overdue"
+                        project={task.project_id ? projectMap[task.project_id] ?? null : null}
                       />
                     ))}
                   </AnimatePresence>
@@ -278,24 +318,27 @@ export function TodayView() {
               </div>
             )}
 
-            {/* Pending */}
-            {todayOnlyTasks.length > 0 && (
+            {/* ── Próximas deadlines ── */}
+            {upcomingTasks.length > 0 && (
               <div className="today-postit-section">
                 <div className="today-section-header">
                   <h2 className="today-section-title">
-                    <CalendarCheck size={16} className="today-section-icon" />
-                    Por hacer
+                    <CalendarClock size={16} className="today-section-icon" />
+                    Próximas
                   </h2>
-                  <span className="today-section-count">{todayOnlyTasks.length}</span>
+                  <span className="today-section-count">{upcomingTasks.length}</span>
                 </div>
                 <div className="today-postit-board">
                   <AnimatePresence mode="popLayout">
-                    {todayOnlyTasks.map((task) => (
+                    {upcomingTasks.map((task) => (
                       <TodayTask
                         key={task.id}
                         task={task}
                         onComplete={handleComplete}
                         rotation={getPostItRotation(task.id)}
+                        variant="upcoming"
+                        dateLabel={task.due_date ? formatRelativeDate(task.due_date, todayStr) : undefined}
+                        project={task.project_id ? projectMap[task.project_id] ?? null : null}
                       />
                     ))}
                   </AnimatePresence>
@@ -303,39 +346,26 @@ export function TodayView() {
               </div>
             )}
 
-            {/* Completed */}
-            {completedTasks.length > 0 && (
+            {/* ── Sin fecha ── */}
+            {noDateTasks.length > 0 && (
               <div className="today-postit-section">
                 <div className="today-section-header">
-                  <h2 className="today-section-title today-section-title-done">
-                    <CheckCircle2 size={16} className="today-section-icon-done" />
-                    Completadas
+                  <h2 className="today-section-title today-section-title-muted">
+                    <Inbox size={16} className="today-section-icon-muted" />
+                    Sin fecha
                   </h2>
-                  <span className="today-section-count today-section-count-done">
-                    {completedCount}/{totalTasks}
-                  </span>
+                  <span className="today-section-count">{noDateTasks.length}</span>
                 </div>
-
-                {progress === 100 && (
-                  <motion.div
-                    className="today-celebration"
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ type: 'spring', stiffness: 300 }}
-                  >
-                    <Trophy size={16} />
-                    <span>¡Completaste todo! Excelente día</span>
-                  </motion.div>
-                )}
-
                 <div className="today-postit-board">
                   <AnimatePresence mode="popLayout">
-                    {completedTasks.map((task) => (
+                    {noDateTasks.map((task) => (
                       <TodayTask
                         key={task.id}
                         task={task}
                         onComplete={handleComplete}
                         rotation={getPostItRotation(task.id)}
+                        variant="nodate"
+                        project={task.project_id ? projectMap[task.project_id] ?? null : null}
                       />
                     ))}
                   </AnimatePresence>

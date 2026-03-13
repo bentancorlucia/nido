@@ -242,6 +242,7 @@ export function SemesterView({ onClickDay }: SemesterViewProps) {
                 monthDate={monthDate}
                 isCurrent={isCurrentMonth}
                 getEventsForDate={getEventsForDate}
+                tasks={tasks}
                 onClickDay={onClickDay}
               />
             </motion.div>
@@ -256,11 +257,13 @@ function SemesterMiniMonth({
   monthDate,
   isCurrent,
   getEventsForDate,
+  tasks,
   onClickDay,
 }: {
   monthDate: Date
   isCurrent: boolean
-  getEventsForDate: (dateStr: string) => unknown[]
+  getEventsForDate: (dateStr: string) => import('../../types').CalendarEvent[]
+  tasks: import('../../types').Task[]
   onClickDay: (date: Date) => void
 }) {
   const weeks = useMemo(() => {
@@ -308,7 +311,9 @@ function SemesterMiniMonth({
         <div key={wi} className="semester-mini-week">
           {week.map((day) => {
             const dateStr = format(day, 'yyyy-MM-dd')
-            const eventCount = getEventsForDate(dateStr).length
+            const typedEvents = getEventsForDate(dateStr).filter((e) => e.event_type && e.event_type !== 'evento').length
+            const taskCount = tasks.filter((t) => t.due_date && t.due_date.split('T')[0] === dateStr && t.is_archived === 0).length
+            const eventCount = typedEvents + taskCount
             return (
               <MiniDayCell
                 key={day.toISOString()}

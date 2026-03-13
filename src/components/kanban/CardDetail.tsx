@@ -303,7 +303,7 @@ export function CardDetail({ task: initialTask, onClose }: CardDetailProps) {
               onChange={(e) => setDescription(e.target.value)}
               onFocus={() => setDescFocused(true)}
               onBlur={handleDescBlur}
-              placeholder="Agregar descripci\u00f3n..."
+              placeholder="Agregar descripción..."
               rows={3}
               style={{
                 ...inputBase,
@@ -366,7 +366,7 @@ export function CardDetail({ task: initialTask, onClose }: CardDetailProps) {
 
             {/* Due date */}
             <div>
-              <p style={sectionLabel}>Fecha l\u00edmite</p>
+              <p style={sectionLabel}>Fecha límite</p>
               <div style={{
                 ...inputField,
                 display: 'flex',
@@ -645,7 +645,7 @@ export function CardDetail({ task: initialTask, onClose }: CardDetailProps) {
           <div style={{ flex: 1 }} />
           {showDeleteConfirm ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 11, color: 'var(--color-danger)', fontWeight: 600 }}>\u00bfSegura?</span>
+              <span style={{ fontSize: 11, color: 'var(--color-danger)', fontWeight: 600 }}>¿Segura?</span>
               <button
                 onClick={handleDelete}
                 style={{

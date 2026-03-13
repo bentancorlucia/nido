@@ -1,10 +1,19 @@
 import { ipcMain } from 'electron'
 import type Database from 'better-sqlite3'
+import {
+  connectGoogle, disconnectGoogle, isGoogleConnected,
+  getGoogleCalendars, setSelectedCalendarIds, getSelectedCalendarIds,
+  syncNow, startAutoSync, stopAutoSync,
+} from './google-calendar'
+import { exportData, importData, resetData } from './export-import'
+import { sendPomodoroNotification, startNotificationChecker } from './notifications'
 
 const ALLOWED_TABLES = [
   'projects', 'kanban_columns', 'tasks', 'tags', 'task_tags',
   'events', 'post_its', 'pomodoro_sessions', 'dashboard_layout',
   'settings', 'templates',
+  'semesters', 'subjects', 'subject_projects', 'class_instances',
+  'grade_categories', 'grades',
 ]
 
 function validateTable(table: string) {
@@ -14,6 +23,7 @@ function validateTable(table: string) {
 }
 
 export function registerIpcHandlers(db: Database.Database) {
+  // --- Database CRUD ---
   ipcMain.handle('db:query', (_event, sql: string, params?: unknown[]) => {
     const stmt = db.prepare(sql)
     return params ? stmt.all(...params) : stmt.all()
@@ -57,7 +67,7 @@ export function registerIpcHandlers(db: Database.Database) {
     db.prepare(`DELETE FROM ${table} WHERE id = ?`).run(id)
   })
 
-  // Settings shortcuts
+  // --- Settings shortcuts ---
   ipcMain.handle('settings:get', (_event, key: string) => {
     const row = db.prepare('SELECT value FROM settings WHERE key = ?').get(key) as { value: string } | undefined
     return row?.value ?? null
@@ -66,4 +76,65 @@ export function registerIpcHandlers(db: Database.Database) {
   ipcMain.handle('settings:set', (_event, key: string, value: string) => {
     db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)').run(key, value)
   })
+
+  // --- Google Calendar ---
+  ipcMain.handle('google:connect', async () => {
+    const result = await connectGoogle(db)
+    if (result) startAutoSync(db)
+    return result
+  })
+
+  ipcMain.handle('google:disconnect', async () => {
+    stopAutoSync()
+    await disconnectGoogle(db)
+  })
+
+  ipcMain.handle('google:isConnected', () => {
+    return isGoogleConnected(db)
+  })
+
+  ipcMain.handle('google:getCalendars', async () => {
+    return getGoogleCalendars(db)
+  })
+
+  ipcMain.handle('google:setCalendars', (_event, ids: string[]) => {
+    setSelectedCalendarIds(db, ids)
+  })
+
+  ipcMain.handle('google:getSelectedCalendars', () => {
+    return getSelectedCalendarIds(db)
+  })
+
+  ipcMain.handle('google:syncNow', async () => {
+    return syncNow(db)
+  })
+
+  ipcMain.handle('google:getLastSync', () => {
+    const row = db.prepare('SELECT value FROM settings WHERE key = ?').get('google_last_sync') as { value: string } | undefined
+    return row?.value ?? null
+  })
+
+  // --- Export / Import ---
+  ipcMain.handle('data:export', async () => {
+    return exportData(db)
+  })
+
+  ipcMain.handle('data:import', async () => {
+    return importData(db)
+  })
+
+  ipcMain.handle('data:reset', async () => {
+    return resetData(db)
+  })
+
+  // --- Notifications ---
+  ipcMain.handle('notifications:pomodoro', (_event, phase: 'work' | 'break' | 'long_break') => {
+    sendPomodoroNotification(phase)
+  })
+
+  // Start background services
+  startNotificationChecker(db)
+  if (isGoogleConnected(db)) {
+    startAutoSync(db)
+  }
 }

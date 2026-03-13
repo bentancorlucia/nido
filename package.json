@@ -8,7 +8,11 @@
     "build": "unset ELECTRON_RUN_AS_NODE && electron-vite build",
     "preview": "unset ELECTRON_RUN_AS_NODE && electron-vite preview",
     "rebuild": "unset ELECTRON_RUN_AS_NODE && electron-rebuild -f -w better-sqlite3",
-    "postinstall": "unset ELECTRON_RUN_AS_NODE && electron-rebuild -f -w better-sqlite3"
+    "postinstall": "unset ELECTRON_RUN_AS_NODE && electron-rebuild -f -w better-sqlite3",
+    "dist": "unset ELECTRON_RUN_AS_NODE && electron-vite build && electron-builder",
+    "dist:mac": "unset ELECTRON_RUN_AS_NODE && electron-vite build && electron-builder --mac",
+    "dist:win": "unset ELECTRON_RUN_AS_NODE && electron-vite build && electron-builder --win",
+    "dist:linux": "unset ELECTRON_RUN_AS_NODE && electron-vite build && electron-builder --linux"
   },
   "keywords": [],
   "author": "",
@@ -29,6 +33,7 @@
     "date-fns": "^4.1.0",
     "framer-motion": "^12.35.2",
     "fuse.js": "^7.1.0",
+    "googleapis": "^171.4.0",
     "lucide-react": "^0.577.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",

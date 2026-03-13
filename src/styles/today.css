@@ -329,8 +329,8 @@
 .timeline-hour {
   display: flex;
   gap: 10px;
-  flex: 1;
-  min-height: 36px;
+  height: 56px;
+  flex-shrink: 0;
 }
 
 .timeline-hour-current {
@@ -362,9 +362,8 @@
 .timeline-hour-content {
   flex: 1;
   border-top: 1px solid color-mix(in srgb, var(--color-border) 25%, transparent);
-  padding-top: 4px;
-  padding-bottom: 4px;
   position: relative;
+  overflow: visible;
   transition: border-color 200ms ease;
 }
 
@@ -373,31 +372,48 @@
 }
 
 .timeline-hour-event {
-  margin-bottom: 4px;
-  padding: 8px 12px;
-  border-radius: 10px;
-  font-size: 13px;
-  font-weight: 500;
-  box-shadow: var(--shadow-sm);
-  transition: box-shadow 200ms ease, transform 200ms ease;
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  z-index: 5;
+  padding: 6px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  overflow: hidden;
+  border: none;
+  text-align: left;
+  transition: box-shadow 200ms ease, filter 200ms ease;
 }
 
 .timeline-hour-event:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateX(2px);
+  box-shadow: var(--shadow-lg);
+  filter: brightness(1.08);
+  z-index: 6;
 }
 
 .timeline-hour-event-title {
-  color: var(--color-text-primary);
+  font-size: 12px;
   font-weight: 600;
+  display: block;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  color: inherit;
+}
+
+.timeline-hour-event-icon {
+  display: inline-flex;
+  opacity: 0.9;
+  margin-right: 4px;
+  vertical-align: middle;
 }
 
 .timeline-hour-event-time {
-  color: var(--color-text-muted);
   font-size: 10px;
-  margin-top: 3px;
   font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
+  display: block;
+  color: var(--color-text-secondary);
+  margin-top: 2px;
 }
 
 .timeline-hour-event-location {
@@ -487,7 +503,7 @@
 .today-postit-board {
   display: flex;
   flex-wrap: wrap;
-  gap: 14px;
+  gap: 10px;
   padding: 4px 2px;
 }
 
@@ -495,10 +511,10 @@
 
 .today-postit {
   position: relative;
-  width: calc(50% - 7px);
-  min-height: 100px;
-  padding: 22px 16px 14px;
-  border-radius: 4px 14px 14px 14px;
+  width: calc(33.333% - 7px);
+  min-height: 0;
+  padding: 16px 12px 10px;
+  border-radius: 4px 10px 10px 10px;
   border: 1px solid;
   cursor: pointer;
   box-shadow:
@@ -513,21 +529,16 @@
     3px 8px 24px rgba(30, 43, 38, 0.06);
 }
 
-.today-postit-done {
-  opacity: 0.5;
-  filter: saturate(0.6);
-}
-
 /* Tape decoration */
 .today-postit-tape {
   position: absolute;
   top: -1px;
   left: 50%;
   transform: translateX(-50%) translateY(-40%);
-  width: 44px;
-  height: 10px;
+  width: 32px;
+  height: 7px;
   border-radius: 2px;
-  opacity: 0.7;
+  opacity: 0.65;
   z-index: 2;
 }
 
@@ -538,10 +549,10 @@
   right: 0;
   width: 0;
   height: 0;
-  border-top: 20px solid rgba(255, 255, 255, 0.45);
-  border-left: 20px solid transparent;
+  border-top: 14px solid rgba(255, 255, 255, 0.4);
+  border-left: 14px solid transparent;
   z-index: 1;
-  border-radius: 0 14px 0 0;
+  border-radius: 0 10px 0 0;
 }
 
 /* Inner content */
@@ -554,51 +565,64 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
 .today-postit-check {
   flex-shrink: 0;
 }
 
-.today-postit-star {
+.today-postit-star-icon {
   flex-shrink: 0;
   filter: drop-shadow(0 1px 2px rgba(210, 177, 0, 0.3));
 }
 
 .today-postit-title {
-  font-size: 15px;
+  font-size: 12.5px;
   font-weight: 600;
-  line-height: 1.4;
+  line-height: 1.35;
   color: #1E2B26;
   word-break: break-word;
-}
-
-.today-postit-title-done {
-  text-decoration: line-through;
-  opacity: 0.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .today-postit-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 5px;
-  margin-top: 10px;
+  gap: 4px;
+  margin-top: 6px;
 }
 
 .today-postit-chip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  font-size: 11px;
+  gap: 3px;
+  font-size: 10px;
   font-weight: 500;
-  padding: 3px 8px;
-  border-radius: 6px;
+  padding: 2px 6px;
+  border-radius: 5px;
   background: rgba(255, 255, 255, 0.45);
   color: rgba(30, 43, 38, 0.7);
 }
 
 .today-postit-chip svg {
+  flex-shrink: 0;
+}
+
+/* Project pill */
+.today-postit-chip-project {
+  border: 1px solid;
+  font-weight: 600;
+  gap: 4px;
+}
+
+.today-postit-project-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
   flex-shrink: 0;
 }
 
@@ -712,9 +736,100 @@
   }
 }
 
+/* ─── Task Variant: Today (most emphasis) ─── */
+
+.today-postit-today {
+  box-shadow:
+    1px 2px 8px rgba(30, 43, 38, 0.1),
+    2px 4px 16px rgba(30, 43, 38, 0.06),
+    0 0 0 2px color-mix(in srgb, var(--color-primary) 20%, transparent);
+  border-width: 1.5px;
+}
+
+.today-postit-today:hover {
+  box-shadow:
+    2px 4px 16px rgba(30, 43, 38, 0.14),
+    3px 8px 28px rgba(30, 43, 38, 0.08),
+    0 0 0 2px color-mix(in srgb, var(--color-primary) 30%, transparent);
+}
+
+.today-postit-glow {
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 0;
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--color-primary) 8%, transparent),
+    color-mix(in srgb, var(--color-accent) 6%, transparent)
+  );
+  animation: today-glow-pulse 3s ease-in-out infinite;
+}
+
+@keyframes today-glow-pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* ─── Task Variant: Overdue ─── */
+
+.today-postit-overdue {
+  box-shadow:
+    1px 2px 8px rgba(126, 25, 70, 0.1),
+    0 0 0 1.5px color-mix(in srgb, var(--color-danger) 18%, transparent);
+}
+
+.today-postit-overdue:hover {
+  box-shadow:
+    2px 4px 14px rgba(126, 25, 70, 0.15),
+    0 0 0 2px color-mix(in srgb, var(--color-danger) 25%, transparent);
+}
+
+/* ─── Task Variant: No date (muted) ─── */
+
+.today-postit-nodate {
+  opacity: 0.85;
+}
+
+/* ─── Section: Today (header emphasis) ─── */
+
+.today-section-title-today {
+  color: var(--color-primary);
+}
+
+.today-section-icon-today {
+  color: var(--color-primary);
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+.today-section-count-today {
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+  font-weight: 700;
+}
+
+/* ─── Section: Muted (no date) ─── */
+
+.today-section-title-muted {
+  color: var(--color-text-muted);
+}
+
+.today-section-icon-muted {
+  color: var(--color-text-muted);
+}
+
+/* ─── Date chip on upcoming tasks ─── */
+
+.today-postit-chip-date {
+  font-weight: 600;
+  background: color-mix(in srgb, var(--color-primary) 12%, rgba(255, 255, 255, 0.5));
+  color: color-mix(in srgb, var(--color-primary) 80%, #1E2B26);
+  text-transform: capitalize;
+}
+
 @media (max-width: 600px) {
   .today-postit {
-    width: 100%;
+    width: calc(50% - 5px);
   }
 
   .today-hero-content {

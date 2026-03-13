@@ -5,6 +5,7 @@ import {
   Kanban,
   Calendar,
   FolderTree,
+  GraduationCap,
   Timer,
   Settings,
   Sun,
@@ -31,6 +32,7 @@ const mainNav: NavItemType[] = [
   { id: 'kanban', label: 'Tareas', icon: Kanban },
   { id: 'calendar', label: 'Calendario', icon: Calendar },
   { id: 'projects', label: 'Proyectos', icon: FolderTree },
+  { id: 'faculty', label: 'Facultad', icon: GraduationCap },
 ]
 
 const bottomNav: NavItemType[] = [

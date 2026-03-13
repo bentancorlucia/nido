@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { dbQuery, dbInsert, dbUpdate, dbDelete } from '../lib/ipc'
-import type { CalendarEvent } from '../types'
+import type { CalendarEvent, EventType } from '../types'
 
 function uuid(): string {
   return crypto.randomUUID()
@@ -26,6 +26,7 @@ interface CalendarState {
     description?: string
     location?: string
     project_id?: string | null
+    event_type?: EventType
   }) => Promise<CalendarEvent>
   updateEvent: (id: string, data: Partial<CalendarEvent>) => Promise<void>
   deleteEvent: (id: string) => Promise<void>
@@ -79,6 +80,7 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
       is_all_day: data.is_all_day ? 1 : 0,
       color: data.color ?? null,
       location: data.location ?? null,
+      event_type: data.event_type ?? 'evento',
       project_id: data.project_id ?? null,
       is_recurring: 0,
       recurrence_rule: null,
@@ -130,7 +132,12 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
     const { events } = get()
     return events.filter((e) => {
       const start = e.start_datetime.split('T')[0]
-      const end = e.end_datetime.split('T')[0]
+      let end = e.end_datetime.split('T')[0]
+      // For all-day events, if end > start it may be an exclusive end date from Google
+      // Use < instead of <= to treat end as exclusive for all-day events
+      if (e.is_all_day && end > start) {
+        return dateStr >= start && dateStr < end
+      }
       return dateStr >= start && dateStr <= end
     })
   },
@@ -139,7 +146,14 @@ export const useCalendarStore = create<CalendarState>((set, get) => ({
     const { events } = get()
     return events.filter((e) => {
       const eStart = e.start_datetime.split('T')[0]
-      const eEnd = e.end_datetime.split('T')[0]
+      let eEnd = e.end_datetime.split('T')[0]
+      // For all-day events, treat end as exclusive
+      if (e.is_all_day && eEnd > eStart) {
+        // Subtract one day for exclusive end comparison
+        const d = new Date(eEnd + 'T00:00:00')
+        d.setDate(d.getDate() - 1)
+        eEnd = d.toISOString().split('T')[0]
+      }
       return eEnd >= start && eStart <= end
     })
   },

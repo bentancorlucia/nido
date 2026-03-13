@@ -1,20 +1,24 @@
 import { motion } from 'framer-motion'
+import { EventTypeIcon } from '../../lib/eventTypes'
 import type { CalendarEvent } from '../../types'
+
+export const HOUR_HEIGHT = 56
 
 interface TimelineHourProps {
   hour: number
   events: CalendarEvent[]
   isCurrentHour: boolean
   currentMinute?: number
+  projectColorMap?: Record<string, string>
 }
 
-export function TimelineHour({ hour, events, isCurrentHour, currentMinute = 0 }: TimelineHourProps) {
+export function TimelineHour({ hour, events, isCurrentHour, currentMinute = 0, projectColorMap = {} }: TimelineHourProps) {
   const label = `${hour.toString().padStart(2, '0')}:00`
 
-  const eventsInHour = events.filter((e) => {
+  // Only render events that START in this hour
+  const eventsStartingHere = events.filter((e) => {
     const startHour = parseInt(e.start_datetime.split('T')[1]?.split(':')[0] ?? '0')
-    const endHour = parseInt(e.end_datetime.split('T')[1]?.split(':')[0] ?? '0')
-    return startHour <= hour && endHour > hour
+    return startHour === hour
   })
 
   const nowPct = isCurrentHour ? (currentMinute / 60) * 100 : 0
@@ -38,32 +42,44 @@ export function TimelineHour({ hour, events, isCurrentHour, currentMinute = 0 }:
           </div>
         )}
 
-        {eventsInHour.map((event) => {
-          const startH = parseInt(event.start_datetime.split('T')[1]?.split(':')[0] ?? '0')
+        {eventsStartingHere.map((event) => {
+          const startMin = parseInt(event.start_datetime.split('T')[1]?.split(':')[1] ?? '0')
           const endH = parseInt(event.end_datetime.split('T')[1]?.split(':')[0] ?? '0')
           const endMin = parseInt(event.end_datetime.split('T')[1]?.split(':')[1] ?? '0')
 
-          if (startH !== hour) return null
+          const durationMinutes = (endH - hour) * 60 + (endMin - startMin)
+          const heightPx = Math.max(28, (durationMinutes / 60) * HOUR_HEIGHT - 6)
+          const topPx = (startMin / 60) * HOUR_HEIGHT
 
-          const durationMinutes = (endH - startH) * 60 + (endMin - parseInt(event.start_datetime.split('T')[1]?.split(':')[1] ?? '0'))
-          const heightBlocks = Math.max(1, Math.ceil(durationMinutes / 60))
+          const bgColor = event.color || (event.project_id ? projectColorMap[event.project_id] : '') || '#01A7C2'
 
           return (
             <motion.div
               key={event.id}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
+              whileHover={{ scale: 1.02, zIndex: 20 }}
+              whileTap={{ scale: 0.98 }}
               className="timeline-hour-event"
               style={{
-                backgroundColor: event.color ? `${event.color}20` : 'var(--color-primary-light)',
-                borderLeft: `3px solid ${event.color || 'var(--color-primary)'}`,
+                background: `linear-gradient(135deg, ${bgColor}30, ${bgColor}50)`,
+                borderLeft: `3.5px solid ${bgColor}`,
+                color: 'var(--color-text-primary)',
+                boxShadow: `0 1px 4px ${bgColor}18`,
+                height: `${heightPx}px`,
+                top: `${topPx}px`,
               }}
             >
-              <p className="timeline-hour-event-title">{event.title}</p>
-              <p className="timeline-hour-event-time">
-                {event.start_datetime.split('T')[1]?.slice(0, 5)} — {event.end_datetime.split('T')[1]?.slice(0, 5)}
+              <p className="timeline-hour-event-title">
+                <EventTypeIcon type={event.event_type} size={11} className="timeline-hour-event-icon" />
+                {event.title}
               </p>
-              {event.location && (
+              {heightPx > 36 && (
+                <p className="timeline-hour-event-time">
+                  {event.start_datetime.split('T')[1]?.slice(0, 5)} — {event.end_datetime.split('T')[1]?.slice(0, 5)}
+                </p>
+              )}
+              {event.location && heightPx > 50 && (
                 <p className="timeline-hour-event-location">{event.location}</p>
               )}
             </motion.div>

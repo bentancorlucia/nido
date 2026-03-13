@@ -40,13 +40,13 @@ export function Modal({ isOpen, onClose, title, children, size = 'md' }: ModalPr
             animate="visible"
             exit="exit"
             className={`modal modal--${size} glass-strong`}
-            style={{ padding: '24px' }}
+            style={{ padding: '20px 24px' }}
             role="dialog"
             aria-modal="true"
             aria-label={title}
           >
             {title && (
-              <div className="modal__header" style={{ marginBottom: 20 }}>
+              <div className="modal__header" style={{ marginBottom: 14 }}>
                 <h2 className="modal__title" style={{ fontSize: 16 }}>
                   {title}
                 </h2>

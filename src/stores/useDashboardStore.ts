@@ -2,24 +2,22 @@ import { create } from 'zustand'
 import { dbQuery, dbUpdate, dbRun } from '../lib/ipc'
 import type { DashboardWidget } from '../types'
 
-export type WidgetType = 'today' | 'deadlines' | 'progress' | 'postits' | 'mini_calendar' | 'pomodoro'
+export type WidgetType = 'today' | 'deadlines' | 'upcoming_events' | 'postits' | 'mini_calendar'
 
 export const WIDGET_LABELS: Record<WidgetType, string> = {
   today: 'Tareas de Hoy',
   deadlines: 'Próximos Deadlines',
-  progress: 'Progreso de Proyectos',
+  upcoming_events: 'Próximos Eventos',
   postits: 'Post-its',
   mini_calendar: 'Mini Calendario',
-  pomodoro: 'Pomodoro',
 }
 
 const DEFAULT_LAYOUT: Omit<DashboardWidget, 'id'>[] = [
   { widget_type: 'today', grid_x: 0, grid_y: 0, grid_w: 4, grid_h: 2, is_visible: 1, config: null },
   { widget_type: 'deadlines', grid_x: 4, grid_y: 0, grid_w: 4, grid_h: 2, is_visible: 1, config: null },
-  { widget_type: 'progress', grid_x: 8, grid_y: 0, grid_w: 4, grid_h: 2, is_visible: 1, config: null },
-  { widget_type: 'postits', grid_x: 0, grid_y: 2, grid_w: 6, grid_h: 3, is_visible: 1, config: null },
-  { widget_type: 'mini_calendar', grid_x: 6, grid_y: 2, grid_w: 3, grid_h: 3, is_visible: 1, config: null },
-  { widget_type: 'pomodoro', grid_x: 9, grid_y: 2, grid_w: 3, grid_h: 3, is_visible: 1, config: null },
+  { widget_type: 'upcoming_events', grid_x: 8, grid_y: 0, grid_w: 4, grid_h: 2, is_visible: 1, config: null },
+  { widget_type: 'postits', grid_x: 0, grid_y: 2, grid_w: 8, grid_h: 4, is_visible: 1, config: null },
+  { widget_type: 'mini_calendar', grid_x: 8, grid_y: 2, grid_w: 4, grid_h: 3, is_visible: 1, config: null },
 ]
 
 interface DashboardState {
@@ -42,6 +40,8 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
   loadWidgets: async () => {
     set({ loading: true })
+    // Remove any legacy 'progress' widgets
+    await dbRun("DELETE FROM dashboard_layout WHERE widget_type IN ('progress', 'project_tasks')")
     const widgets = await dbQuery<DashboardWidget>(
       'SELECT * FROM dashboard_layout ORDER BY grid_y ASC, grid_x ASC'
     )
@@ -63,7 +63,8 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     const widget = get().widgets.find((w) => w.id === id)
     if (!widget) return
     const newVis = widget.is_visible === 1 ? 0 : 1
-    await dbUpdate('dashboard_layout', id, { is_visible: newVis })
+    // Use explicit SQL to ensure the update persists
+    await dbRun('UPDATE dashboard_layout SET is_visible = ? WHERE id = ?', [newVis, id])
     set({
       widgets: get().widgets.map((w) =>
         w.id === id ? { ...w, is_visible: newVis } : w

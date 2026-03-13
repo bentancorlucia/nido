@@ -21,7 +21,7 @@ interface PostItState {
   colors: typeof POST_IT_COLORS
 
   loadPostIts: () => Promise<void>
-  createPostIt: (content?: string, color?: string) => Promise<PostIt>
+  createPostIt: (content?: string, color?: string, x?: number, y?: number) => Promise<PostIt>
   updatePostIt: (id: string, data: Partial<PostIt>) => Promise<void>
   deletePostIt: (id: string) => Promise<void>
   movePostIt: (id: string, x: number, y: number) => Promise<void>
@@ -43,7 +43,7 @@ export const usePostItStore = create<PostItState>((set, get) => ({
     set({ postIts, loading: false })
   },
 
-  createPostIt: async (content = '', color?: string) => {
+  createPostIt: async (content = '', color?: string, posX?: number, posY?: number) => {
     const id = uuid()
     const now = new Date().toISOString()
 
@@ -51,9 +51,8 @@ export const usePostItStore = create<PostItState>((set, get) => ({
     const { postIts } = get()
     const maxZ = postIts.reduce((max, p) => Math.max(max, p.z_index), 0)
 
-    // Random position within a reasonable area
-    const x = 20 + Math.random() * 200
-    const y = 20 + Math.random() * 200
+    const x = posX ?? 20 + Math.random() * 200
+    const y = posY ?? 20 + Math.random() * 200
 
     // Random color from palette if not specified
     const randomColor = POST_IT_COLORS[Math.floor(Math.random() * POST_IT_COLORS.length)].value

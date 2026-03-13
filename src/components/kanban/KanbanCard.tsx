@@ -1,9 +1,9 @@
-import { useMemo } from 'react'
-import { motion } from 'framer-motion'
+import { memo, useMemo } from 'react'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { Star, Calendar, Clock, CheckCircle2, AlertTriangle } from 'lucide-react'
 import { Checkbox } from '../ui/Checkbox'
+import { localDateStr } from '../../lib/dates'
 import type { Task, Tag } from '../../types'
 
 interface KanbanCardProps {
@@ -38,12 +38,12 @@ function hashStr(s: string): number {
 
 function isOverdue(date: string | null): boolean {
   if (!date) return false
-  return date < new Date().toISOString().split('T')[0]
+  return date < localDateStr()
 }
 
 function isToday(date: string | null): boolean {
   if (!date) return false
-  return date === new Date().toISOString().split('T')[0]
+  return date === localDateStr()
 }
 
 function formatDate(dateStr: string): string {
@@ -52,8 +52,8 @@ function formatDate(dateStr: string): string {
   const tomorrow = new Date(today)
   tomorrow.setDate(tomorrow.getDate() + 1)
 
-  if (dateStr === today.toISOString().split('T')[0]) return 'Hoy'
-  if (dateStr === tomorrow.toISOString().split('T')[0]) return 'Mañana'
+  if (dateStr === localDateStr(today)) return 'Hoy'
+  if (dateStr === localDateStr(tomorrow)) return 'Mañana'
 
   return date.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' })
 }
@@ -64,7 +64,7 @@ const priorityConfig: Record<string, { color: string }> = {
   baja: { color: 'var(--color-priority-baja)' },
 }
 
-export function KanbanCard({ task, tags, subtaskCount, onClick, onComplete, isDragOverlay }: KanbanCardProps) {
+export const KanbanCard = memo(function KanbanCard({ task, tags, subtaskCount, onClick, onComplete, isDragOverlay }: KanbanCardProps) {
   const {
     attributes,
     listeners,
@@ -72,11 +72,17 @@ export function KanbanCard({ task, tags, subtaskCount, onClick, onComplete, isDr
     transform,
     transition,
     isDragging,
-  } = useSortable({ id: task.id })
+  } = useSortable({
+    id: task.id,
+    transition: {
+      duration: 250,
+      easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+    },
+  })
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition: isDragging ? 'none' : transition ?? 'transform 200ms cubic-bezier(0.25, 1, 0.5, 1)',
+  const style: React.CSSProperties = {
+    transform: CSS.Translate.toString(transform),
+    transition: isDragging ? 'none' : transition ?? undefined,
   }
 
   const overdue = isOverdue(task.due_date) && task.is_completed === 0
@@ -98,7 +104,7 @@ export function KanbanCard({ task, tags, subtaskCount, onClick, onComplete, isDr
   }, [subtaskCount])
 
   return (
-    <motion.div
+    <div
       ref={setNodeRef}
       {...attributes}
       {...listeners}
@@ -114,14 +120,11 @@ export function KanbanCard({ task, tags, subtaskCount, onClick, onComplete, isDr
         if ((e.target as HTMLElement).closest('[role="checkbox"]')) return
         onClick()
       }}
-      layout
-      layoutId={isDragOverlay ? undefined : task.id}
     >
       {/* Tape strip at top */}
       <div className="kcard__tape" />
 
-      {/* Priority accent — left edge */}
-      <div className="kcard__priority" style={{ backgroundColor: priority.color }} />
+      {/* Priority accent — left edge, hidden for baja */}
 
       {/* Card body */}
       <div className="kcard__body">
@@ -197,6 +200,6 @@ export function KanbanCard({ task, tags, subtaskCount, onClick, onComplete, isDr
           </div>
         )}
       </div>
-    </motion.div>
+    </div>
   )
-}
+})

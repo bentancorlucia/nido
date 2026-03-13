@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { dbQuery, dbInsert, dbUpdate, dbDelete, dbRun } from '../lib/ipc'
+import { localDateStr } from '../lib/dates'
 import { generateNextInstanceData } from '../lib/recurrence'
 import type { Task, Tag } from '../types'
 
@@ -47,6 +48,7 @@ interface TaskState {
   updateTask: (id: string, data: Partial<Task>) => Promise<void>
   deleteTask: (id: string) => Promise<void>
   completeTask: (id: string, completed: boolean) => Promise<void>
+  moveTaskLocal: (id: string, columnId: string, sortOrder: number) => void
   moveTask: (id: string, columnId: string, sortOrder: number) => Promise<void>
   reorderTasks: (columnId: string, taskIds: string[]) => Promise<void>
 
@@ -216,8 +218,16 @@ export const useTaskStore = create<TaskState>((set, get) => ({
     }
   },
 
+  moveTaskLocal: (id, columnId, sortOrder) => {
+    // Local-only state update — no DB write. Used during dragOver for instant feedback.
+    set((state) => ({
+      tasks: state.tasks.map((t) =>
+        t.id === id ? { ...t, column_id: columnId, sort_order: sortOrder } : t
+      ),
+    }))
+  },
+
   moveTask: async (id, columnId, sortOrder) => {
-    // Optimistic local update for snappy drag feedback
     set((state) => ({
       tasks: state.tasks.map((t) =>
         t.id === id ? { ...t, column_id: columnId, sort_order: sortOrder } : t
@@ -231,13 +241,23 @@ export const useTaskStore = create<TaskState>((set, get) => ({
   },
 
   reorderTasks: async (columnId, taskIds) => {
-    for (let i = 0; i < taskIds.length; i++) {
-      await dbUpdate('tasks', taskIds[i], {
-        column_id: columnId,
-        sort_order: i,
-        updated_at: new Date().toISOString(),
-      })
-    }
+    // Optimistic local update first
+    set((state) => ({
+      tasks: state.tasks.map((t) => {
+        const idx = taskIds.indexOf(t.id)
+        if (idx !== -1) return { ...t, column_id: columnId, sort_order: idx }
+        return t
+      }),
+    }))
+    // Batch DB writes in a single transaction via one SQL call
+    const now = new Date().toISOString()
+    const cases = taskIds.map((id, i) => `WHEN '${id}' THEN ${i}`).join(' ')
+    const colCases = taskIds.map((id) => `WHEN '${id}' THEN '${columnId}'`).join(' ')
+    const ids = taskIds.map((id) => `'${id}'`).join(',')
+    await dbRun(
+      `UPDATE tasks SET sort_order = CASE id ${cases} END, column_id = CASE id ${colCases} END, updated_at = ? WHERE id IN (${ids})`,
+      [now]
+    )
   },
 
   addTagToTask: async (taskId, tagId) => {
@@ -279,7 +299,7 @@ export const useTaskStore = create<TaskState>((set, get) => ({
       filtered = filtered.filter((t) => t.due_date === null)
     }
     if (filters.overdue === true) {
-      const now = new Date().toISOString().split('T')[0]
+      const now = localDateStr()
       filtered = filtered.filter((t) => t.due_date !== null && t.due_date < now && t.is_completed === 0)
     }
     if (filters.tags.length > 0) {

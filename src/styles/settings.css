@@ -5,10 +5,13 @@
 
 /* ===== SettingsPage ===== */
 .settings-page {
-  max-width: 42rem;
-  margin: 0 auto;
   overflow-y: auto;
   height: 100%;
+  scrollbar-width: none;
+}
+
+.settings-page::-webkit-scrollbar {
+  display: none;
 }
 
 .settings-title {
@@ -429,4 +432,236 @@
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+/* ===== Google Calendar Section ===== */
+.settings-google-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.settings-google-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.settings-google-dot--connected {
+  background-color: var(--color-accent-dark);
+  box-shadow: 0 0 6px rgba(184, 204, 58, 0.4);
+}
+
+.settings-google-dot--disconnected {
+  background-color: var(--color-text-muted);
+}
+
+.settings-google-status-text {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.settings-google-last-sync {
+  font-size: 11px;
+  color: var(--color-text-muted);
+  margin-bottom: 16px;
+}
+
+.settings-google-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.settings-google-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 10px;
+  transition: all 150ms ease;
+  cursor: pointer;
+  border: none;
+  font-family: var(--font-sans);
+}
+
+.settings-google-btn--connect {
+  background-color: var(--color-primary);
+  color: var(--color-text-on-primary);
+}
+
+.settings-google-btn--connect:hover {
+  background-color: var(--color-primary-hover);
+}
+
+.settings-google-btn--sync {
+  background-color: color-mix(in srgb, var(--color-primary-light) 40%, transparent);
+  color: var(--color-primary);
+}
+
+.settings-google-btn--sync:hover {
+  background-color: color-mix(in srgb, var(--color-primary-light) 60%, transparent);
+}
+
+.settings-google-btn--disconnect {
+  background-color: color-mix(in srgb, var(--color-danger-light) 30%, transparent);
+  color: var(--color-danger);
+}
+
+.settings-google-btn--disconnect:hover {
+  background-color: color-mix(in srgb, var(--color-danger-light) 50%, transparent);
+}
+
+.settings-google-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.settings-google-creds {
+  margin-bottom: 16px;
+}
+
+.settings-google-creds-label {
+  font-size: 12px;
+  color: var(--color-text-muted);
+  display: block;
+  margin-bottom: 6px;
+}
+
+.settings-google-creds-input {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 12px;
+  border-radius: 10px;
+  background-color: color-mix(in srgb, var(--color-surface-alt) 30%, transparent);
+  color: var(--color-text-primary);
+  outline: none;
+  font-family: var(--font-mono);
+  border: 1px solid var(--color-border);
+  transition: border-color 150ms;
+  margin-bottom: 8px;
+}
+
+.settings-google-creds-input:focus {
+  border-color: var(--color-primary);
+}
+
+.settings-calendars-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.settings-calendar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  transition: background-color 150ms;
+  cursor: pointer;
+}
+
+.settings-calendar-item:hover {
+  background-color: color-mix(in srgb, var(--color-surface-alt) 30%, transparent);
+}
+
+.settings-calendar-item input[type="checkbox"] {
+  accent-color: var(--color-primary);
+}
+
+.settings-calendar-color {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.settings-calendar-name {
+  font-size: 13px;
+  color: var(--color-text-primary);
+}
+
+/* ===== Data Section ===== */
+.settings-data-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.settings-data-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 150ms ease;
+  text-align: left;
+}
+
+.settings-data-btn--export {
+  background-color: color-mix(in srgb, var(--color-primary-light) 30%, transparent);
+  color: var(--color-primary);
+}
+
+.settings-data-btn--export:hover {
+  background-color: color-mix(in srgb, var(--color-primary-light) 50%, transparent);
+}
+
+.settings-data-btn--import {
+  background-color: color-mix(in srgb, var(--color-surface-alt) 40%, transparent);
+  color: var(--color-text-primary);
+}
+
+.settings-data-btn--import:hover {
+  background-color: color-mix(in srgb, var(--color-surface-alt) 60%, transparent);
+}
+
+.settings-data-btn--reset {
+  background-color: color-mix(in srgb, var(--color-danger-light) 20%, transparent);
+  color: var(--color-danger);
+}
+
+.settings-data-btn--reset:hover {
+  background-color: color-mix(in srgb, var(--color-danger-light) 40%, transparent);
+}
+
+.settings-data-btn-icon {
+  flex-shrink: 0;
+}
+
+.settings-data-btn-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-data-btn-label {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.settings-data-btn-desc {
+  font-size: 11px;
+  opacity: 0.7;
+  font-weight: 400;
+}
+
+/* ===== Notifications Section ===== */
+.settings-notif-options {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }

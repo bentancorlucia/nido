@@ -9,6 +9,7 @@
 @import './pomodoro.css';
 @import './settings.css';
 @import './search.css';
+@import './faculty.css';
 @import './app.css';
 
 :root {
@@ -53,8 +54,8 @@
   --color-text-on-accent: #304B42;
   --color-text-on-danger: #FFFFFF;
 
-  --color-border: rgba(0, 0, 0, 0.05);
-  --color-border-strong: rgba(0, 0, 0, 0.09);
+  --color-border: rgba(0, 0, 0, 0.07);
+  --color-border-strong: rgba(0, 0, 0, 0.13);
   --color-border-focus: #01A7C2;
   --color-border-glow: rgba(1, 167, 194, 0.25);
 
@@ -173,6 +174,14 @@ html, body, #root {
   height: 100%;
   width: 100%;
   overflow: hidden;
+}
+
+/* Theme transition — applied temporarily during dark/light toggle */
+html.theme-transition,
+html.theme-transition *,
+html.theme-transition *::before,
+html.theme-transition *::after {
+  transition: background-color 500ms ease, color 400ms ease, border-color 400ms ease, box-shadow 400ms ease, fill 400ms ease, stroke 400ms ease !important;
 }
 
 body {
@@ -367,8 +376,14 @@ h1, h2, h3, h4, h5, h6 {
    FOCUS
    ═══════════════════════════════════════ */
 :focus-visible {
-  outline: 2px solid var(--color-border-focus);
+  outline: 1.5px solid color-mix(in srgb, var(--color-border-focus) 40%, transparent);
   outline-offset: 2px;
+}
+
+/* Remove focus-visible for inputs inside styled containers */
+.kcol__quickadd :focus-visible,
+.cmdpal-root :focus-visible {
+  outline: none;
 }
 
 /* ═══════════════════════════════════════
@@ -676,6 +691,26 @@ h1, h2, h3, h4, h5, h6 {
   color: var(--color-primary);
 }
 
+.widget-icon-wrap.upcevents {
+  background: linear-gradient(135deg, rgba(126, 25, 70, 0.12), rgba(1, 167, 194, 0.08));
+  color: #7E1946;
+}
+
+.dark .widget-icon-wrap.upcevents {
+  background: linear-gradient(135deg, rgba(168, 50, 101, 0.15), rgba(1, 167, 194, 0.1));
+  color: #D4729A;
+}
+
+.widget-icon-wrap.projtasks {
+  background: linear-gradient(135deg, rgba(48, 75, 66, 0.15), rgba(221, 244, 91, 0.1));
+  color: var(--color-accent-dark);
+}
+
+.dark .widget-icon-wrap.projtasks {
+  background: linear-gradient(135deg, rgba(48, 75, 66, 0.2), rgba(221, 244, 91, 0.08));
+  color: var(--color-accent);
+}
+
 .widget-icon-wrap.pomodoro {
   background: linear-gradient(135deg, rgba(1, 167, 194, 0.15), rgba(126, 25, 70, 0.06));
   color: var(--color-primary);
@@ -705,8 +740,10 @@ h1, h2, h3, h4, h5, h6 {
 .bento-today       { grid-column: span 4; grid-row: span 3; }
 .bento-deadlines    { grid-column: span 4; grid-row: span 3; }
 .bento-progress     { grid-column: span 4; grid-row: span 3; }
-.bento-postits      { grid-column: span 6; grid-row: span 4; }
-.bento-calendar     { grid-column: span 6; grid-row: span 4; }
+.bento-upcevents    { grid-column: span 4; grid-row: span 3; }
+.bento-projtasks    { grid-column: span 4; grid-row: span 4; }
+.bento-postits      { grid-column: span 6; grid-row: span 5; }
+.bento-calendar     { grid-column: span 6; grid-row: span 5; }
 .bento-pomodoro     { grid-column: span 4; grid-row: span 3; }
 
 /* Responsive — 2 col on smaller */
@@ -714,6 +751,8 @@ h1, h2, h3, h4, h5, h6 {
   .bento-today       { grid-column: span 6; }
   .bento-deadlines   { grid-column: span 6; }
   .bento-progress    { grid-column: span 6; }
+  .bento-upcevents   { grid-column: span 6; }
+  .bento-projtasks   { grid-column: span 6; }
   .bento-postits     { grid-column: span 12; }
   .bento-calendar    { grid-column: span 6; }
   .bento-pomodoro    { grid-column: span 6; }
@@ -722,7 +761,9 @@ h1, h2, h3, h4, h5, h6 {
 @media (max-width: 720px) {
   .bento-today,
   .bento-deadlines,
+  .bento-upcevents,
   .bento-progress,
+  .bento-projtasks,
   .bento-postits,
   .bento-calendar,
   .bento-pomodoro {
@@ -1142,6 +1183,12 @@ h1, h2, h3, h4, h5, h6 {
   overflow-y: auto;
   margin-right: -6px;
   padding-right: 6px;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+}
+
+.widget-scroll::-webkit-scrollbar {
+  display: none; /* Chrome/Safari */
 }
 
 /* Hidden widgets panel */
